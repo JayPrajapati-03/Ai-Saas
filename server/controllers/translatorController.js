@@ -56,8 +56,8 @@ export const translateText = async (req, res) => {
 
     const translated = completion.choices[0].message.content;
 
-    // Increment today's usage
-    await User.findByIdAndUpdate(userId, { $inc: { todayUsage: 1 } });
+    // Increment usage
+    await User.findByIdAndUpdate(userId, { $inc: { todayUsage: 1, totalUsage: 1 } });
 
     // Save to History
     await History.create({

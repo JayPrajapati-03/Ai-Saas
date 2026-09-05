@@ -13,11 +13,8 @@ export const getDashboardStats = async (req, res) => {
         // 3. Images Generated (Count from History where type='image')
         const imagesGenerated = await History.countDocuments({ type: 'image' });
 
-        // 4. Translations (Count from History where type='translator' - assuming type name from prev context)
-        // Note: I need to verify key for translator. I'll search for it or assume 'translator' for now based on file names.
-        // Actually, let's just count 'translator' type in history if it exists, or just use a placeholder if history types differ.
-        // I recall a 'History.js' model. Let's check History types later. For now, I'll count clearly known ones.
-        const translations = await History.countDocuments({ type: 'translator' });
+        // 4. Translations (Count from History where type='translate')
+        const translations = await History.countDocuments({ type: { $in: ["translate", "translator"] } });
 
         // 5. Recent Users (Last 5)
         const recentUsersData = await User.find({})
