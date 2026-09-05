@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Users, BarChart3, ImageIcon, Languages } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { API_URL } from "../config/api";
 
 export default function AdminDashboard() {
   const [statsData, setStatsData] = useState({
@@ -17,7 +18,7 @@ export default function AdminDashboard() {
     const fetchAdminStats = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch("http://localhost:5000/api/admin/stats", {
+        const response = await fetch(`${API_URL}/api/admin/stats`, {
           headers: {
             "Authorization": `Bearer ${token}`
           }

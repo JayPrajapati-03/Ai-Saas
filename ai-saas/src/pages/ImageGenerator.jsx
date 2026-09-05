@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Loader2, Download, Sparkles, AlertCircle, ImageIcon } from "lucide-react";
 import { useUsage } from "../context/UsageContext";
+import { API_URL } from "../config/api";
 
 export default function ImageGenerator() {
   const [prompt, setPrompt] = useState("");
@@ -44,7 +45,7 @@ export default function ImageGenerator() {
         return;
       }
 
-      const response = await fetch("http://localhost:5000/api/image/generate", {
+      const response = await fetch(`${API_URL}/api/image/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

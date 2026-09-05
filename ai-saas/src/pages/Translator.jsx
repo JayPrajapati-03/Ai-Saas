@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Loader2, ArrowRightLeft } from "lucide-react";
 import { useUsage } from "../context/UsageContext";
+import { API_URL } from "../config/api";
 
 export default function Translator() {
   const [inputText, setInputText] = useState("");
@@ -37,7 +38,7 @@ export default function Translator() {
       // Find the full language name for better AI context
       const targetLangName = languages.find((l) => l.code === toLang)?.name || toLang;
 
-      const response = await fetch("http://localhost:5000/api/ai/translate", {
+      const response = await fetch(`${API_URL}/api/ai/translate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

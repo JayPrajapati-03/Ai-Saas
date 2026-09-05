@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useUsage } from "../context/UsageContext";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { API_URL } from "../config/api";
 
 export default function DashboardHome() {
   const [userName, setUserName] = useState("User");
@@ -35,7 +36,7 @@ export default function DashboardHome() {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        const response = await fetch("http://localhost:5000/api/auth/stats", {
+        const response = await fetch(`${API_URL}/api/auth/stats`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,

@@ -12,6 +12,7 @@ import {
   ChevronsRight,
   X
 } from "lucide-react";
+import { API_URL } from "../config/api";
 
 export default function History() {
   const [filter, setFilter] = useState("all");
@@ -37,7 +38,7 @@ export default function History() {
         return;
       }
 
-      const res = await fetch("http://localhost:5000/api/history", {
+      const res = await fetch(`${API_URL}/api/history`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useUsage } from "../context/UsageContext";
+import { API_URL } from "../config/api";
 
 export default function Summarizer() {
   const [inputText, setInputText] = useState("");
@@ -22,7 +23,7 @@ export default function Summarizer() {
         return;
       }
 
-      const response = await fetch("http://localhost:5000/api/ai/summarize", {
+      const response = await fetch(`${API_URL}/api/ai/summarize`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
