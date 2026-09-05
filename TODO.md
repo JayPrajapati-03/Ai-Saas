@@ -1,0 +1,11 @@
+- [x] Update ImageGenerator.jsx to call backend API for image generation
+- [x] Handle API response and set imageUrl to base64 data
+- [x] Add error handling for failed API calls
+- [x] Fix OpenRouter model and parameters for proper prompt-based generation
+- [x] Switch to stability-ai/sdxl model with width/height parameters
+- [x] Add fallback to placeholder images
+- [x] Update imageController.js to use OpenRouter API instead of HuggingFace
+- [x] Add multer middleware to parse FormData in imageRoutes.js
+- [x] Update test script to match new model and parameters
+- [x] Test image generation functionality
+- [x] Verify download functionality works with base64 images

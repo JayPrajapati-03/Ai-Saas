@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment variables (SENSITIVE - contains DB password, API keys, JWT secret)
+.env
+.env.local
+.env.production
+
+# Debug & test log files
+*.txt
+
+# Test scripts (not part of production)
+test_*.js
+list_*.js
+
+# General logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

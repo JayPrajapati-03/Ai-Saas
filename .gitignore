@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Environment variables (SENSITIVE - never push)
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+debug_image.txt
+npm-debug.log*
+
+# Build output
+dist/
+dist-ssr/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Misc
+*.local
+test-openrouter.js
