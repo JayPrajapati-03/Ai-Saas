@@ -28,7 +28,14 @@ export default function ImageGenerator() {
   const [imageUrl, setImageUrl]     = useState("");
   const [error, setError]           = useState("");
   const [fullscreen, setFullscreen] = useState(false);
-  const { incrementUsage } = useUsage();
+  const {
+    plan = "Basic",
+    credits = "Unlimited credits",
+    rawCredits = 120,
+    consumeCredits,
+    updateCreditsFromServer,
+    openOutOfCreditsModal,
+  } = useUsage() || {};
 
   useEffect(() => {
     let interval;
@@ -41,6 +48,13 @@ export default function ImageGenerator() {
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
+
+    if (plan !== "Basic" && (rawCredits < 20 || rawCredits <= 0)) {
+      openOutOfCreditsModal?.();
+      setError("⚠️ You do not have enough credits (20 credits required). Please recharge credits on the Billing page.");
+      return;
+    }
+
     setLoading(true); setError(""); setImageUrl("");
     const controller = new AbortController();
     const tid = setTimeout(() => controller.abort(), 35000);
@@ -58,8 +72,18 @@ export default function ImageGenerator() {
       });
       clearTimeout(tid);
       const data = await res.json();
-      if (res.ok && data.success && data.image) { setImageUrl(data.image); incrementUsage(); }
-      else setError(data.message || "Failed to generate image. Please try again.");
+      if (res.ok && data.success && data.image) {
+        setImageUrl(data.image);
+        consumeCredits?.(20);
+        if (typeof data.remainingCredits === "number") {
+          updateCreditsFromServer?.(data.remainingCredits);
+        }
+      } else {
+        if (data.outOfCredits || res.status === 403) {
+          openOutOfCreditsModal?.();
+        }
+        setError(data.message || "Failed to generate image. Please try again.");
+      }
     } catch (err) {
       clearTimeout(tid);
       if (err.name === "AbortError") setError("Generation took too long. Please try again.");
@@ -90,15 +114,32 @@ export default function ImageGenerator() {
 
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-        style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(236,72,153,0.15)", border: "1px solid rgba(236,72,153,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <ImageIcon size={22} style={{ color: "#f9a8d4" }} />
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(236,72,153,0.15)", border: "1px solid rgba(236,72,153,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <ImageIcon size={22} style={{ color: "#f9a8d4" }} />
+          </div>
+          <div>
+            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 26, fontWeight: 700, letterSpacing: "-0.01em" }}>
+              Image <span style={{ background: "linear-gradient(135deg,#f9a8d4,#c4b5fd)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Generator</span>
+            </h1>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>Create stunning AI images from text descriptions</p>
+          </div>
         </div>
-        <div>
-          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 26, fontWeight: 700, letterSpacing: "-0.01em" }}>
-            Image <span style={{ background: "linear-gradient(135deg,#f9a8d4,#c4b5fd)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Generator</span>
-          </h1>
-          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>Create stunning AI images from text descriptions</p>
+
+        {/* Credit Cost Badge */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 10,
+          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", fontSize: 12, color: "var(--text-secondary)"
+        }}>
+          <span style={{ color: plan === "Basic" ? "#6ee7b7" : "#f9a8d4", fontWeight: 600 }}>
+            {plan === "Basic" ? "🌱 10 Images/day on Basic" : `⚡ 20 credits / image`}
+          </span>
+          {plan !== "Basic" && (
+            <span style={{ color: "var(--text-muted)" }}>
+              • Balance: <strong style={{ color: "white" }}>{credits}</strong>
+            </span>
+          )}
         </div>
       </motion.div>
 

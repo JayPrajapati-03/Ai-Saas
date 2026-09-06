@@ -82,6 +82,7 @@ export default function Billing() {
   const {
     plan: activePlan,
     credits,
+    rawCredits = 120,
     billingHistory,
     upgradePlan,
     switchToBasic,
@@ -113,7 +114,7 @@ export default function Billing() {
 
   // Open checkout for a plan
   const handleSelectPlan = (plan) => {
-    if (plan.name === activePlan) return;
+    if (plan.name === activePlan && (activePlan === "Basic" || rawCredits > 0)) return;
 
     if (plan.name === "Basic") {
       // Switching back to Basic: free, no payment required
@@ -652,14 +653,14 @@ export default function Billing() {
                 <button
                   type="button"
                   onClick={() => handleSelectPlan(plan)}
-                  disabled={isActive}
+                  disabled={isActive && (isBasic || rawCredits > 0)}
                   style={{
                     width: "100%",
                     padding: "12px",
                     borderRadius: 12,
                     fontWeight: 700,
                     fontSize: 14,
-                    cursor: isActive ? "default" : "pointer",
+                    cursor: isActive && (isBasic || rawCredits > 0) ? "default" : "pointer",
                     transition: "all 0.2s",
                     border: "none",
                     display: "flex",
@@ -667,11 +668,17 @@ export default function Billing() {
                     justifyContent: "center",
                     gap: 8,
                     ...(isActive
-                      ? {
-                          background: "rgba(16,185,129,0.15)",
-                          color: "#6ee7b7",
-                          border: "1px solid rgba(16,185,129,0.35)",
-                        }
+                      ? rawCredits <= 0 && !isBasic
+                        ? {
+                            background: "linear-gradient(135deg,#f59e0b,#d97706)",
+                            color: "white",
+                            boxShadow: "0 4px 16px rgba(245,158,11,0.35)",
+                          }
+                        : {
+                            background: "rgba(16,185,129,0.15)",
+                            color: "#6ee7b7",
+                            border: "1px solid rgba(16,185,129,0.35)",
+                          }
                       : isBasic
                       ? {
                           background: "rgba(16,185,129,0.12)",
@@ -689,9 +696,15 @@ export default function Billing() {
                   }}
                 >
                   {isActive ? (
-                    <>
-                      <Check size={16} /> Current Plan
-                    </>
+                    rawCredits <= 0 && !isBasic ? (
+                      <>
+                        <Sparkles size={15} /> Purchase Credits ({plan.price})
+                      </>
+                    ) : (
+                      <>
+                        <Check size={16} /> Current Plan
+                      </>
+                    )
                   ) : isBasic ? (
                     <>
                       <RefreshCw size={15} /> Switch to Basic (Free)

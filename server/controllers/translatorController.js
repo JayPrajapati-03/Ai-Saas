@@ -37,6 +37,25 @@ export const translateText = async (req, res) => {
       });
     }
 
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Credits usage check for paid plans
+    const translateCost = 5;
+    if (user.plan && user.plan !== "Basic") {
+      if ((user.credits || 0) < translateCost) {
+        return res.status(403).json({
+          success: false,
+          outOfCredits: true,
+          message: "You have 0 credits remaining. Please purchase credits again on the Billing page to continue translating.",
+          remainingCredits: user.credits || 0,
+        });
+      }
+      user.credits = Math.max(0, (user.credits || 0) - translateCost);
+    }
+
     const completion = await client.chat.completions.create({
       model: "meta-llama/llama-3.1-70b-instruct",
       messages: [
@@ -57,7 +76,9 @@ export const translateText = async (req, res) => {
     const translated = completion.choices[0].message.content;
 
     // Increment usage
-    await User.findByIdAndUpdate(userId, { $inc: { todayUsage: 1, totalUsage: 1 } });
+    user.todayUsage = (user.todayUsage || 0) + 1;
+    user.totalUsage = (user.totalUsage || 0) + 1;
+    await user.save();
 
     // Save to History
     await History.create({
@@ -70,6 +91,7 @@ export const translateText = async (req, res) => {
     res.json({
       success: true,
       translated,
+      remainingCredits: user.credits,
     });
 
   } catch (error) {

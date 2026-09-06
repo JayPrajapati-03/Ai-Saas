@@ -18,6 +18,25 @@ export const generateText = async (req, res) => {
       return res.status(400).json({ success: false, message: "Prompt required" });
     }
 
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Credits usage check for paid plans
+    const textCost = 5;
+    if (user.plan && user.plan !== "Basic") {
+      if ((user.credits || 0) < textCost) {
+        return res.status(403).json({
+          success: false,
+          outOfCredits: true,
+          message: "You have 0 credits remaining. Please purchase credits again on the Billing page to continue generating text.",
+          remainingCredits: user.credits || 0,
+        });
+      }
+      user.credits = Math.max(0, (user.credits || 0) - textCost);
+    }
+
     const client = new OpenAI({
       baseURL: "https://openrouter.ai/api/v1",
       apiKey: process.env.OPENROUTER_API_KEY,
@@ -38,10 +57,8 @@ export const generateText = async (req, res) => {
 
     const output = completion.choices[0].message.content;
 
-    // Increment today's usage
-    // Increment usage 
-    const user = await User.findById(userId);
-    user.todayUsage += 1;
+    // Increment usage
+    user.todayUsage = (user.todayUsage || 0) + 1;
     user.totalUsage = (user.totalUsage || 0) + 1;
 
     // Check Level Up
@@ -66,6 +83,7 @@ export const generateText = async (req, res) => {
     res.json({
       success: true,
       output,
+      remainingCredits: user.credits,
     });
 
   } catch (error) {

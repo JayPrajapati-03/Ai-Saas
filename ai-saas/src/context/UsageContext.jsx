@@ -5,6 +5,7 @@ const UsageContext = createContext();
 
 export function UsageProvider({ children }) {
   const [usageCount, setUsageCount] = useState(0);
+  const [showOutOfCreditsModal, setShowOutOfCreditsModal] = useState(false);
 
   // Initialize plan and billing from localStorage if available
   const [plan, setPlan] = useState(() => {
@@ -20,15 +21,30 @@ export function UsageProvider({ children }) {
     }
   });
 
-  const [credits, setCredits] = useState(() => {
+  const [rawCredits, setRawCredits] = useState(() => {
     try {
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
         const u = JSON.parse(storedUser);
-        if (u.plan === "Pro") return "2,000";
-        if (u.plan === "Ultimate") return "5,000";
+        if (typeof u.credits === "number") return u.credits;
       }
+      const saved = localStorage.getItem("saas_raw_credits");
+      if (saved !== null) return parseInt(saved, 10);
       const p = localStorage.getItem("saas_active_plan") || "Basic";
+      if (p === "Pro") return 2000;
+      if (p === "Ultimate") return 5000;
+      return 120;
+    } catch {
+      return 120;
+    }
+  });
+
+  const [credits, setCredits] = useState(() => {
+    try {
+      const p = localStorage.getItem("saas_active_plan") || "Basic";
+      if (p === "Basic") return "Unlimited credits";
+      const saved = localStorage.getItem("saas_raw_credits");
+      if (saved !== null) return parseInt(saved, 10).toLocaleString();
       if (p === "Pro") return "2,000";
       if (p === "Ultimate") return "5,000";
       return "Unlimited credits";
@@ -52,11 +68,18 @@ export function UsageProvider({ children }) {
     setUsageCount((prev) => prev + 1);
   };
 
+  const openOutOfCreditsModal = () => {
+    setShowOutOfCreditsModal(true);
+  };
+
   // Sync state to localStorage
-  const syncLocalState = (newPlan, newCredits, newHistory) => {
+  const syncLocalState = (newPlan, newCreditsStr, newRawNum, newHistory) => {
     try {
       localStorage.setItem("saas_active_plan", newPlan);
-      localStorage.setItem("saas_credits", String(newCredits));
+      localStorage.setItem("saas_credits", String(newCreditsStr));
+      if (typeof newRawNum === "number") {
+        localStorage.setItem("saas_raw_credits", String(newRawNum));
+      }
       if (newHistory) {
         localStorage.setItem("saas_billing_history", JSON.stringify(newHistory));
       }
@@ -65,10 +88,50 @@ export function UsageProvider({ children }) {
       if (storedUser) {
         const u = JSON.parse(storedUser);
         u.plan = newPlan;
-        u.credits = newPlan === "Basic" ? 120 : (newPlan === "Pro" ? 2000 : 5000);
+        u.credits = typeof newRawNum === "number" ? newRawNum : (newPlan === "Basic" ? 120 : (newPlan === "Pro" ? 2000 : 5000));
         localStorage.setItem("user", JSON.stringify(u));
       }
     } catch { /* noop */ }
+  };
+
+  // Consume credits on generation
+  const consumeCredits = (cost = 5) => {
+    if (plan === "Basic") {
+      incrementUsage();
+      return { allowed: true };
+    }
+
+    if (rawCredits < cost || rawCredits <= 0) {
+      setShowOutOfCreditsModal(true);
+      return { allowed: false, outOfCredits: true };
+    }
+
+    const updated = Math.max(0, rawCredits - cost);
+    setRawCredits(updated);
+    const updatedStr = updated.toLocaleString();
+    setCredits(updatedStr);
+    incrementUsage();
+    syncLocalState(plan, updatedStr, updated);
+
+    if (updated === 0) {
+      setShowOutOfCreditsModal(true);
+    }
+
+    return { allowed: true, remaining: updated };
+  };
+
+  // Update credits directly from server response
+  const updateCreditsFromServer = (serverCredits) => {
+    if (typeof serverCredits === "number") {
+      setRawCredits(serverCredits);
+      const str = plan === "Basic" ? "Unlimited credits" : serverCredits.toLocaleString();
+      setCredits(str);
+      syncLocalState(plan, str, serverCredits);
+
+      if (plan !== "Basic" && serverCredits <= 0) {
+        setShowOutOfCreditsModal(true);
+      }
+    }
   };
 
   // Fetch live billing info from backend
@@ -92,15 +155,21 @@ export function UsageProvider({ children }) {
           setPlan(currentPlan);
 
           let credStr = "Unlimited credits";
-          if (currentPlan === "Pro") credStr = "2,000";
-          else if (currentPlan === "Ultimate") credStr = "5,000";
+          let rawNum = typeof sub.rawCredits === "number" ? sub.rawCredits : 120;
+          if (currentPlan === "Pro") {
+            credStr = rawNum.toLocaleString();
+          } else if (currentPlan === "Ultimate") {
+            credStr = rawNum.toLocaleString();
+          }
+
+          setRawCredits(rawNum);
           setCredits(credStr);
 
           if (sub.billingHistory && Array.isArray(sub.billingHistory)) {
             setBillingHistory(sub.billingHistory);
-            syncLocalState(currentPlan, credStr, sub.billingHistory);
+            syncLocalState(currentPlan, credStr, rawNum, sub.billingHistory);
           } else {
-            syncLocalState(currentPlan, credStr);
+            syncLocalState(currentPlan, credStr, rawNum);
           }
         }
       }
@@ -118,7 +187,8 @@ export function UsageProvider({ children }) {
   const upgradePlan = async (targetPlan, paymentDetails = {}) => {
     setLoading(true);
     const amount = targetPlan === "Pro" ? "$9.99" : "$19.99";
-    const allocatedCredits = targetPlan === "Pro" ? "2,000" : "5,000";
+    const allocatedRaw = targetPlan === "Pro" ? 2000 : 5000;
+    const allocatedCredits = allocatedRaw.toLocaleString();
     const token = localStorage.getItem("token");
 
     const fallbackTransaction = {
@@ -151,13 +221,14 @@ export function UsageProvider({ children }) {
         const data = await res.json();
         if (res.ok && data.success) {
           setPlan(targetPlan);
+          setRawCredits(allocatedRaw);
           setCredits(allocatedCredits);
           const historyList = data.subscription.billingHistory || [
             fallbackTransaction,
             ...billingHistory,
           ];
           setBillingHistory(historyList);
-          syncLocalState(targetPlan, allocatedCredits, historyList);
+          syncLocalState(targetPlan, allocatedCredits, allocatedRaw, historyList);
           setLoading(false);
           return { success: true, message: data.message, plan: targetPlan, credits: allocatedCredits };
         }
@@ -168,15 +239,16 @@ export function UsageProvider({ children }) {
 
     // Local fallback in case server is unreachable / demo
     setPlan(targetPlan);
+    setRawCredits(allocatedRaw);
     setCredits(allocatedCredits);
     const updatedHistory = [fallbackTransaction, ...billingHistory];
     setBillingHistory(updatedHistory);
-    syncLocalState(targetPlan, allocatedCredits, updatedHistory);
+    syncLocalState(targetPlan, allocatedCredits, allocatedRaw, updatedHistory);
     setLoading(false);
 
     return {
       success: true,
-      message: `🎉 Payment successful! You have upgraded to ${targetPlan} Plan.`,
+      message: `🎉 Payment successful! You have upgraded to ${targetPlan} Plan with ${allocatedCredits} credits.`,
       plan: targetPlan,
       credits: allocatedCredits,
     };
@@ -199,8 +271,9 @@ export function UsageProvider({ children }) {
         const data = await res.json();
         if (res.ok && data.success) {
           setPlan("Basic");
+          setRawCredits(120);
           setCredits("Unlimited credits");
-          syncLocalState("Basic", "Unlimited credits");
+          syncLocalState("Basic", "Unlimited credits", 120);
           setLoading(false);
           return { success: true, message: data.message };
         }
@@ -210,8 +283,9 @@ export function UsageProvider({ children }) {
     }
 
     setPlan("Basic");
+    setRawCredits(120);
     setCredits("Unlimited credits");
-    syncLocalState("Basic", "Unlimited credits");
+    syncLocalState("Basic", "Unlimited credits", 120);
     setLoading(false);
 
     return {
@@ -227,11 +301,17 @@ export function UsageProvider({ children }) {
         incrementUsage,
         plan,
         credits,
+        rawCredits,
         billingHistory,
         loading,
         upgradePlan,
         switchToBasic,
         refreshBilling,
+        consumeCredits,
+        updateCreditsFromServer,
+        showOutOfCreditsModal,
+        setShowOutOfCreditsModal,
+        openOutOfCreditsModal,
       }}
     >
       {children}

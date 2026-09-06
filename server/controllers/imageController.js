@@ -49,6 +49,26 @@ export const generateImage = async (req, res) => {
       });
     }
 
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Credits usage check for paid plans (20 credits per image)
+    const imageCost = 20;
+    if (user.plan && user.plan !== "Basic") {
+      if ((user.credits || 0) < imageCost) {
+        return res.status(403).json({
+          success: false,
+          outOfCredits: true,
+          message: "You do not have enough credits to generate an image (20 credits required). Please purchase credits again on the Billing page.",
+          remainingCredits: user.credits || 0,
+        });
+      }
+      user.credits = Math.max(0, (user.credits || 0) - imageCost);
+      await user.save();
+    }
+
     const cleanPrompt = prompt.trim();
 
     // Optimize dimensions for fast AI generation without queue delays
@@ -177,8 +197,7 @@ export const generateImage = async (req, res) => {
 
     fs.appendFileSync('debug_image.txt', `Success (${providerName}). Length: ${imageResult.base64.length}\n`);
 
-    // Increment usage 
-    const user = await User.findById(userId);
+    // Increment usage
     if (user) {
       user.todayUsage = (user.todayUsage || 0) + 1;
       user.totalUsage = (user.totalUsage || 0) + 1;
@@ -206,6 +225,7 @@ export const generateImage = async (req, res) => {
       success: true,
       provider: providerName,
       image: `data:${imageResult.mimeType};base64,${imageResult.base64}`,
+      remainingCredits: user ? user.credits : undefined,
     });
 
   } catch (err) {

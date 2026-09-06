@@ -39,10 +39,24 @@ export default function Translator() {
   const [loading, setLoading]       = useState(false);
   const [outputText, setOutputText] = useState("");
   const [copied, setCopied]         = useState(false);
-  const { incrementUsage } = useUsage();
+  const {
+    plan = "Basic",
+    credits = "Unlimited credits",
+    rawCredits = 120,
+    consumeCredits,
+    updateCreditsFromServer,
+    openOutOfCreditsModal,
+  } = useUsage() || {};
 
   const handleTranslate = async () => {
     if (!inputText.trim()) return;
+
+    if (plan !== "Basic" && (rawCredits < 5 || rawCredits <= 0)) {
+      openOutOfCreditsModal?.();
+      setOutputText("⚠️ You are out of credits. Please recharge credits on the Billing page.");
+      return;
+    }
+
     setLoading(true); setOutputText("");
 
     try {
@@ -56,16 +70,26 @@ export default function Translator() {
         body: JSON.stringify({ text: inputText, targetLanguage: targetLangName }),
       });
       const data = await res.json();
-      if (data.success) { setOutputText(data.translated); incrementUsage(); }
-      else setOutputText(`Error: ${data.message || "Failed to translate"}`);
+      if (data.success) {
+        setOutputText(data.translated);
+        consumeCredits?.(5);
+        if (typeof data.remainingCredits === "number") {
+          updateCreditsFromServer?.(data.remainingCredits);
+        }
+      } else {
+        if (data.outOfCredits || res.status === 403) {
+          openOutOfCreditsModal?.();
+        }
+        setOutputText(`Error: ${data.message || "Failed to translate"}`);
+      }
     } catch { setOutputText("Network error. Please try again."); }
     finally { setLoading(false); }
   };
 
   const swapLanguages = () => {
-    const prev = fromLang;
+    const prevFrom = fromLang;
     setFromLang(toLang);
-    setToLang(prev);
+    setToLang(prevFrom);
     setInputText(outputText);
     setOutputText(inputText);
   };
@@ -85,15 +109,32 @@ export default function Translator() {
 
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-        style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Globe size={22} style={{ color: "#fcd34d" }} />
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Globe size={22} style={{ color: "#fcd34d" }} />
+          </div>
+          <div>
+            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 26, fontWeight: 700, letterSpacing: "-0.01em" }}>
+              AI <span style={{ background: "linear-gradient(135deg,#fcd34d,#fb923c)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Translator</span>
+            </h1>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>Translate text across 7+ languages with AI precision</p>
+          </div>
         </div>
-        <div>
-          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 26, fontWeight: 700, letterSpacing: "-0.01em" }}>
-            AI <span style={{ background: "linear-gradient(135deg,#fcd34d,#fb923c)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Translator</span>
-          </h1>
-          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>Translate text across 7+ languages with AI precision</p>
+
+        {/* Credit Cost Badge */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 10,
+          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", fontSize: 12, color: "var(--text-secondary)"
+        }}>
+          <span style={{ color: plan === "Basic" ? "#6ee7b7" : "#fcd34d", fontWeight: 600 }}>
+            {plan === "Basic" ? "🌱 Unlimited Free Translations" : `⚡ 5 credits / translation`}
+          </span>
+          {plan !== "Basic" && (
+            <span style={{ color: "var(--text-muted)" }}>
+              • Balance: <strong style={{ color: "white" }}>{credits}</strong>
+            </span>
+          )}
         </div>
       </motion.div>
 

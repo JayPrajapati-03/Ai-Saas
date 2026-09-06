@@ -7,6 +7,7 @@ import {
   CheckCheck, Trash2, Zap
 } from "lucide-react";
 import { useUsage } from "../context/UsageContext";
+import OutOfCreditsModal from "../components/OutOfCreditsModal";
 
 const menuItems = [
   { name: "Dashboard",       icon: Home,       path: "/app",                  color: "#c4b5fd" },
@@ -20,7 +21,12 @@ const menuItems = [
 ];
 
 export default function DashboardLayout() {
-  const { plan = "Basic", credits = "Unlimited credits" } = useUsage() || {};
+  const {
+    plan = "Basic",
+    credits = "Unlimited credits",
+    showOutOfCreditsModal,
+    setShowOutOfCreditsModal,
+  } = useUsage() || {};
   const [open, setOpen] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -607,6 +613,12 @@ export default function DashboardLayout() {
           <Outlet />
         </div>
       </div>
+
+      {/* Out Of Credits Warning Modal */}
+      <OutOfCreditsModal
+        isOpen={Boolean(showOutOfCreditsModal)}
+        onClose={() => setShowOutOfCreditsModal?.(false)}
+      />
     </div>
   );
 }

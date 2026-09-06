@@ -9,10 +9,24 @@ export default function Summarizer() {
   const [loading, setLoading]     = useState(false);
   const [summary, setSummary]     = useState("");
   const [copied, setCopied]       = useState(false);
-  const { incrementUsage } = useUsage();
+  const {
+    plan = "Basic",
+    credits = "Unlimited credits",
+    rawCredits = 120,
+    consumeCredits,
+    updateCreditsFromServer,
+    openOutOfCreditsModal,
+  } = useUsage() || {};
 
   const handleSummarize = async () => {
     if (!inputText.trim()) return;
+
+    if (plan !== "Basic" && (rawCredits < 5 || rawCredits <= 0)) {
+      openOutOfCreditsModal?.();
+      setSummary("⚠️ You are out of credits. Please recharge credits on the Billing page.");
+      return;
+    }
+
     setLoading(true);
     setSummary("");
 
@@ -26,8 +40,18 @@ export default function Summarizer() {
         body: JSON.stringify({ text: inputText }),
       });
       const data = await res.json();
-      if (res.ok) { setSummary(data.summary); incrementUsage(); }
-      else setSummary(`Error: ${data.message || "Failed to summarize"}`);
+      if (res.ok) {
+        setSummary(data.summary);
+        consumeCredits?.(5);
+        if (typeof data.remainingCredits === "number") {
+          updateCreditsFromServer?.(data.remainingCredits);
+        }
+      } else {
+        if (data.outOfCredits || res.status === 403) {
+          openOutOfCreditsModal?.();
+        }
+        setSummary(`Error: ${data.message || "Failed to summarize"}`);
+      }
     } catch { setSummary("Network error. Please try again."); }
 
     setLoading(false);
@@ -50,15 +74,32 @@ export default function Summarizer() {
 
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-        style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <FileText size={22} style={{ color: "#6ee7b7" }} />
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <FileText size={22} style={{ color: "#6ee7b7" }} />
+          </div>
+          <div>
+            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 26, fontWeight: 700, letterSpacing: "-0.01em" }}>
+              AI <span style={{ background: "linear-gradient(135deg,#6ee7b7,#67e8f9)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Summarizer</span>
+            </h1>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>Condense any content into crisp, meaningful summaries</p>
+          </div>
         </div>
-        <div>
-          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 26, fontWeight: 700, letterSpacing: "-0.01em" }}>
-            AI <span style={{ background: "linear-gradient(135deg,#6ee7b7,#67e8f9)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Summarizer</span>
-          </h1>
-          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>Condense any content into crisp, meaningful summaries</p>
+
+        {/* Credit Cost Badge */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 10,
+          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", fontSize: 12, color: "var(--text-secondary)"
+        }}>
+          <span style={{ color: plan === "Basic" ? "#6ee7b7" : "#c4b5fd", fontWeight: 600 }}>
+            {plan === "Basic" ? "🌱 Unlimited Free Summaries" : `⚡ 5 credits / summary`}
+          </span>
+          {plan !== "Basic" && (
+            <span style={{ color: "var(--text-muted)" }}>
+              • Balance: <strong style={{ color: "white" }}>{credits}</strong>
+            </span>
+          )}
         </div>
       </motion.div>
 
