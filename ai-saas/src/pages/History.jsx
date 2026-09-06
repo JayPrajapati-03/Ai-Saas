@@ -1,358 +1,258 @@
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
-  Search,
-  Sparkles,
-  FileText,
-  ImageIcon,
-  Languages,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  X
+  Search, Sparkles, FileText, ImageIcon, Languages,
+  Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X, Clock
 } from "lucide-react";
 import { API_URL } from "../config/api";
 
-export default function History() {
-  const [filter, setFilter] = useState("all");
-  const [search, setSearch] = useState("");
-  const [historyData, setHistoryData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+const filterTabs = [
+  { id: "all",       label: "All",       color: "#c4b5fd", bg: "rgba(124,58,237,0.2)"  },
+  { id: "text",      label: "Text",      color: "#c4b5fd", bg: "rgba(124,58,237,0.15)" },
+  { id: "summary",   label: "Summary",   color: "#6ee7b7", bg: "rgba(16,185,129,0.15)" },
+  { id: "image",     label: "Images",    color: "#f9a8d4", bg: "rgba(236,72,153,0.15)" },
+  { id: "translate", label: "Translate", color: "#fcd34d", bg: "rgba(245,158,11,0.15)" },
+];
 
-  // Pagination states
+const typeConfig = {
+  text:      { icon: Sparkles,   color: "#c4b5fd", bg: "rgba(124,58,237,0.15)", border: "rgba(124,58,237,0.3)" },
+  summary:   { icon: FileText,   color: "#6ee7b7", bg: "rgba(16,185,129,0.15)", border: "rgba(16,185,129,0.3)" },
+  image:     { icon: ImageIcon,  color: "#f9a8d4", bg: "rgba(236,72,153,0.15)", border: "rgba(236,72,153,0.3)" },
+  translate: { icon: Languages,  color: "#fcd34d", bg: "rgba(245,158,11,0.15)", border: "rgba(245,158,11,0.3)" },
+};
+
+export default function History() {
+  const [filter, setFilter]           = useState("all");
+  const [search, setSearch]           = useState("");
+  const [historyData, setHistoryData] = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
 
-  useEffect(() => {
-    fetchHistory();
-  }, []);
+  useEffect(() => { fetchHistory(); }, []);
 
   const fetchHistory = async () => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Please login to view history.");
-        setLoading(false);
-        return;
-      }
-
-      const res = await fetch(`${API_URL}/api/history`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      if (!token) { setError("Please login to view history."); setLoading(false); return; }
+      const res = await fetch(`${API_URL}/api/history`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
-
-      if (data.success) {
-        setHistoryData(data.history || []);
-      } else {
-        setError(data.message || "Failed to load history.");
-      }
-    } catch (err) {
-      setError("Network error. Could not fetch history.");
-    } finally {
-      setLoading(false);
-    }
+      if (data.success) setHistoryData(data.history || []);
+      else setError(data.message || "Failed to load history.");
+    } catch { setError("Network error. Could not fetch history."); }
+    finally { setLoading(false); }
   };
 
-  // Reset to page 1 whenever filter or search query changes
-  const handleFilterChange = (newFilter) => {
-    setFilter(newFilter);
-    setCurrentPage(1);
-  };
+  const handleFilterChange = (f) => { setFilter(f); setCurrentPage(1); };
+  const handleSearchChange = (e) => { setSearch(e.target.value); setCurrentPage(1); };
+  const clearSearch = () => { setSearch(""); setCurrentPage(1); };
 
-  const handleSearchChange = (e) => {
-    setSearch(e.target.value);
-    setCurrentPage(1);
-  };
-
-  const clearSearch = () => {
-    setSearch("");
-    setCurrentPage(1);
-  };
-
-  const getIcon = (type) => {
-    switch (type) {
-      case "text": return <Sparkles size={20} className="text-indigo-400" />;
-      case "summary": return <FileText size={20} className="text-emerald-400" />;
-      case "image": return <ImageIcon size={20} className="text-pink-400" />;
-      case "translate": return <Languages size={20} className="text-amber-400" />;
-      default: return <Sparkles size={20} className="text-gray-400" />;
-    }
-  };
-
-  const getBadgeStyle = (type) => {
-    switch (type) {
-      case "text": return "bg-indigo-500/20 text-indigo-300 border-indigo-500/30";
-      case "summary": return "bg-emerald-500/20 text-emerald-300 border-emerald-500/30";
-      case "image": return "bg-pink-500/20 text-pink-300 border-pink-500/30";
-      case "translate": return "bg-amber-500/20 text-amber-300 border-amber-500/30";
-      default: return "bg-gray-500/20 text-gray-300 border-gray-500/30";
-    }
-  };
-
-  // Filter items matching category and search
-  const filteredData = historyData.filter((item) => {
+  const filteredData = historyData.filter(item => {
     const matchesFilter = filter === "all" || item.type === filter;
-    const query = search.trim().toLowerCase();
-    const matchesSearch =
-      query === "" ||
-      (item.title && item.title.toLowerCase().includes(query)) ||
-      (item.content && item.content.toLowerCase().includes(query));
-
+    const q = search.trim().toLowerCase();
+    const matchesSearch = q === "" || (item.title?.toLowerCase().includes(q)) || (item.content?.toLowerCase().includes(q));
     return matchesFilter && matchesSearch;
   });
 
-  // Calculate pagination
   const totalItems = filteredData.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
-  const validPage = Math.min(Math.max(1, currentPage), totalPages);
-
+  const validPage  = Math.min(Math.max(1, currentPage), totalPages);
   const startIndex = (validPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+  const endIndex   = Math.min(startIndex + itemsPerPage, totalItems);
   const currentItems = filteredData.slice(startIndex, endIndex);
 
-  // Generate page numbers array with ellipses
   const getPageNumbers = () => {
-    if (totalPages <= 5) {
-      return Array.from({ length: totalPages }, (_, i) => i + 1);
-    }
+    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
     const pages = [];
-    if (validPage <= 3) {
-      pages.push(1, 2, 3, 4, "...", totalPages);
-    } else if (validPage >= totalPages - 2) {
-      pages.push(1, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
-    } else {
-      pages.push(1, "...", validPage - 1, validPage, validPage + 1, "...", totalPages);
-    }
+    if (validPage <= 3) pages.push(1, 2, 3, 4, "...", totalPages);
+    else if (validPage >= totalPages - 2) pages.push(1, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+    else pages.push(1, "...", validPage - 1, validPage, validPage + 1, "...", totalPages);
     return pages;
   };
 
-  const filterTabs = [
-    { id: "all", label: "All" },
-    { id: "text", label: "Text" },
-    { id: "summary", label: "Summary" },
-    { id: "image", label: "Images" },
-    { id: "translate", label: "Translate" },
-  ];
-
   return (
-    <div className="space-y-8">
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
-      {/* Page Title & Stats */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <h1 className="text-3xl font-bold">
-          Activity <span className="text-indigo-400">History</span>
-        </h1>
-        <div className="text-sm text-gray-400">
-          Total Records: <span className="font-semibold text-white">{historyData.length}</span>
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Clock size={22} style={{ color: "#a5b4fc" }} />
+          </div>
+          <div>
+            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 26, fontWeight: 700, letterSpacing: "-0.01em" }}>
+              Activity <span className="gradient-text">History</span>
+            </h1>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>All your AI tool activity in one place</p>
+          </div>
         </div>
-      </div>
+        <div style={{ padding: "8px 16px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10 }}>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Total: </span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: "white", fontFamily: "var(--font-heading)" }}>{historyData.length}</span>
+          <span style={{ fontSize: 12, color: "var(--text-muted)" }}> records</span>
+        </div>
+      </motion.div>
 
-      {/* Filters + Search */}
-      <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
-
-        {/* Category Filters */}
-        <div className="flex flex-wrap gap-2">
-          {filterTabs.map((btn) => {
-            const count = btn.id === "all"
-              ? historyData.length
-              : historyData.filter(item => item.type === btn.id).length;
-
+      {/* Filter + Search */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+        {/* Filter tabs */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {filterTabs.map(tab => {
+            const count = tab.id === "all" ? historyData.length : historyData.filter(i => i.type === tab.id).length;
+            const isActive = filter === tab.id;
             return (
-              <button
-                key={btn.id}
-                onClick={() => handleFilterChange(btn.id)}
-                className={`px-4 py-2 rounded-xl font-semibold transition text-sm flex items-center gap-2 ${
-                  filter === btn.id
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
-                    : "bg-white/10 hover:bg-white/20 text-gray-300"
-                }`}
+              <button key={tab.id} onClick={() => handleFilterChange(tab.id)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: 10,
+                  fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.2s", border: "1px solid",
+                  ...(isActive
+                    ? { background: tab.bg, borderColor: tab.color + "80", color: tab.color, boxShadow: `0 0 12px ${tab.bg}` }
+                    : { background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.08)", color: "var(--text-secondary)" }),
+                }}
+                onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "white"; }}}
+                onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "var(--text-secondary)"; }}}
               >
-                <span>{btn.label}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  filter === btn.id ? "bg-white/20 text-white" : "bg-black/30 text-gray-400"
-                }`}>
+                {tab.label}
+                <span style={{ fontSize: 11, fontWeight: 700, padding: "1px 7px", borderRadius: 999, background: isActive ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.3)", color: isActive ? tab.color : "var(--text-muted)" }}>
                   {count}
                 </span>
               </button>
             );
           })}
         </div>
-
-        {/* Search Box */}
-        <div className="relative w-full md:w-72">
-          <Search className="absolute top-3 left-3 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="Search title or prompt..."
-            value={search}
-            onChange={handleSearchChange}
-            className="w-full p-2.5 pl-10 pr-9 bg-black/20 rounded-xl border border-white/10 text-white placeholder-gray-400 outline-none focus:border-indigo-500 transition text-sm"
-          />
+        {/* Search */}
+        <div style={{ position: "relative", width: 280 }}>
+          <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+          <input type="text" placeholder="Search title or prompt..." value={search} onChange={handleSearchChange}
+            className="input-premium" style={{ paddingLeft: 36, paddingRight: search ? 36 : 14, fontSize: 13 }} />
           {search && (
-            <button
-              onClick={clearSearch}
-              className="absolute top-3 right-3 text-gray-400 hover:text-white transition"
-              title="Clear search"
-            >
-              <X size={16} />
+            <button onClick={clearSearch}
+              style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", display: "flex", padding: 2 }}>
+              <X size={14} />
             </button>
           )}
         </div>
-      </div>
+      </motion.div>
 
-      {/* History List */}
-      <div className="space-y-4">
+      {/* List */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {loading ? (
-          <div className="flex justify-center p-14">
-            <Loader2 className="animate-spin text-indigo-500" size={36} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="shimmer" style={{ height: 80, borderRadius: 14 }} />
+            ))}
           </div>
         ) : error ? (
-          <div className="p-8 bg-red-500/10 border border-red-500/20 rounded-2xl text-center">
-            <p className="text-red-400">{error}</p>
+          <div style={{ padding: 32, textAlign: "center", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 16 }}>
+            <p style={{ color: "#fca5a5" }}>{error}</p>
           </div>
         ) : currentItems.length === 0 ? (
-          <div className="p-12 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 text-center space-y-3">
-            <p className="text-gray-300 text-base">
-              {search.trim()
-                ? `No activities found matching "${search}" in ${filter.toUpperCase()}.`
-                : `No history records found in this category.`}
+          <div style={{ padding: "48px 32px", textAlign: "center", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16 }}>
+            <Clock size={40} style={{ color: "var(--text-muted)", margin: "0 auto 12px", display: "block", opacity: 0.3 }} />
+            <p style={{ color: "var(--text-secondary)", marginBottom: 12 }}>
+              {search.trim() ? `No results for "${search}"` : "No history records in this category"}
             </p>
-            {search.trim() && (
-              <button
-                onClick={clearSearch}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 transition rounded-xl text-white text-sm font-medium"
-              >
-                Clear Search Filter
-              </button>
+            {search && (
+              <button onClick={clearSearch} className="btn-ghost" style={{ fontSize: 13 }}>Clear Search</button>
             )}
           </div>
         ) : (
-          currentItems.map((item) => (
-            <div
-              key={item._id}
-              className="p-5 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 hover:border-white/20 transition flex items-start gap-4"
-            >
-              {/* Type Icon */}
-              <div className="p-3 bg-black/30 rounded-xl h-fit border border-white/5 shrink-0">
-                {getIcon(item.type)}
-              </div>
-
-              {/* Content Body */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h3 className="text-base font-semibold text-white truncate">{item.title}</h3>
-                  <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border capitalize ${getBadgeStyle(item.type)}`}>
-                    {item.type}
-                  </span>
+          currentItems.map((item, idx) => {
+            const cfg = typeConfig[item.type] || typeConfig.text;
+            const Icon = cfg.icon;
+            return (
+              <motion.div key={item._id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.03 }}
+                style={{
+                  display: "flex", alignItems: "flex-start", gap: 14,
+                  padding: "16px 20px",
+                  background: "var(--bg-card)",
+                  border: `1px solid ${cfg.border}`,
+                  borderLeft: `3px solid ${cfg.color}`,
+                  borderRadius: 14,
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.boxShadow = `0 0 16px ${cfg.border}`; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "var(--bg-card)"; e.currentTarget.style.boxShadow = "none"; }}
+              >
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: cfg.bg, border: `1px solid ${cfg.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Icon size={17} style={{ color: cfg.color }} />
                 </div>
-                <p className="text-gray-300 mt-1.5 text-sm line-clamp-2 break-words">
-                  {item.content || "No details provided"}
-                </p>
-                <p className="text-gray-400 text-xs mt-2">
-                  {new Date(item.createdAt).toLocaleString()}
-                </p>
-              </div>
-            </div>
-          ))
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <h3 style={{ fontSize: 14, fontWeight: 600, color: "white" }}>{item.title}</h3>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, textTransform: "capitalize" }}>{item.type}</span>
+                  </div>
+                  <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                    {item.content || "No content details"}
+                  </p>
+                  <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 5 }}>
+                    {new Date(item.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              </motion.div>
+            );
+          })
         )}
       </div>
 
-      {/* Pagination Controls at Bottom */}
+      {/* Pagination */}
       {!loading && !error && totalItems > itemsPerPage && (
-        <div className="p-4 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
-
-          {/* Showing Entries Info */}
-          <div className="text-sm text-gray-300">
-            Showing <span className="font-semibold text-white">{totalItems === 0 ? 0 : startIndex + 1}</span> to{" "}
-            <span className="font-semibold text-white">{endIndex}</span> of{" "}
-            <span className="font-semibold text-white">{totalItems}</span> results
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          style={{ padding: "16px 20px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+          <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+            Showing <strong style={{ color: "white" }}>{totalItems === 0 ? 0 : startIndex + 1}</strong> – <strong style={{ color: "white" }}>{endIndex}</strong> of <strong style={{ color: "white" }}>{totalItems}</strong>
           </div>
-
-          {/* Items Per Page Selector */}
-          <div className="flex items-center gap-2 text-sm text-gray-300">
-            <span>Show:</span>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => {
-                setItemsPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="bg-black/40 border border-white/15 text-white rounded-lg px-2.5 py-1 outline-none text-sm cursor-pointer hover:border-white/30 transition"
-            >
-              <option value={10} className="bg-gray-900 text-white">10 per page</option>
-              <option value={25} className="bg-gray-900 text-white">25 per page</option>
-              <option value={50} className="bg-gray-900 text-white">50 per page</option>
-            </select>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {[
+              { icon: ChevronsLeft, action: () => setCurrentPage(1), disabled: validPage === 1 },
+              { icon: ChevronLeft,  action: () => setCurrentPage(p => Math.max(1, p - 1)), disabled: validPage === 1 },
+            ].map(({ icon: Icon, action, disabled }, i) => (
+              <button key={i} onClick={action} disabled={disabled}
+                style={{ width: 34, height: 34, borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.3 : 1, color: "var(--text-secondary)", transition: "all 0.15s" }}
+                onMouseEnter={e => { if (!disabled) { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "white"; }}}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "var(--text-secondary)"; }}>
+                <Icon size={14} />
+              </button>
+            ))}
+            {getPageNumbers().map((p, i) => p === "..." ? (
+              <span key={`e${i}`} style={{ padding: "0 4px", color: "var(--text-muted)", fontSize: 13 }}>…</span>
+            ) : (
+              <button key={`p${p}`} onClick={() => setCurrentPage(p)}
+                style={{
+                  width: 34, height: 34, borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "1px solid", transition: "all 0.15s",
+                  ...(validPage === p
+                    ? { background: "linear-gradient(135deg,#7c3aed,#0891b2)", borderColor: "transparent", color: "white", boxShadow: "0 0 12px rgba(124,58,237,0.4)" }
+                    : { background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.08)", color: "var(--text-secondary)" }),
+                }}>
+                {p}
+              </button>
+            ))}
+            {[
+              { icon: ChevronRight,  action: () => setCurrentPage(p => Math.min(totalPages, p + 1)), disabled: validPage === totalPages },
+              { icon: ChevronsRight, action: () => setCurrentPage(totalPages), disabled: validPage === totalPages },
+            ].map(({ icon: Icon, action, disabled }, i) => (
+              <button key={i} onClick={action} disabled={disabled}
+                style={{ width: 34, height: 34, borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.3 : 1, color: "var(--text-secondary)", transition: "all 0.15s" }}
+                onMouseEnter={e => { if (!disabled) { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "white"; }}}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "var(--text-secondary)"; }}>
+                <Icon size={14} />
+              </button>
+            ))}
           </div>
-
-          {/* Navigation Buttons */}
-          <div className="flex items-center gap-1.5">
-            {/* First Page */}
-            <button
-              onClick={() => setCurrentPage(1)}
-              disabled={validPage === 1}
-              title="First Page"
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/15 disabled:opacity-25 disabled:cursor-not-allowed transition text-gray-300"
-            >
-              <ChevronsLeft size={16} />
-            </button>
-
-            {/* Previous Page */}
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={validPage === 1}
-              title="Previous Page"
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/15 disabled:opacity-25 disabled:cursor-not-allowed transition text-gray-300"
-            >
-              <ChevronLeft size={16} />
-            </button>
-
-            {/* Page Number Buttons */}
-            {getPageNumbers().map((pageNum, idx) =>
-              pageNum === "..." ? (
-                <span key={`ellipsis-${idx}`} className="px-2 text-gray-500 select-none">
-                  ...
-                </span>
-              ) : (
-                <button
-                  key={`page-${pageNum}`}
-                  onClick={() => setCurrentPage(pageNum)}
-                  className={`w-9 h-9 rounded-lg font-medium text-sm transition ${
-                    validPage === pageNum
-                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
-                      : "bg-white/5 hover:bg-white/15 text-gray-300"
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              )
-            )}
-
-            {/* Next Page */}
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={validPage === totalPages}
-              title="Next Page"
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/15 disabled:opacity-25 disabled:cursor-not-allowed transition text-gray-300"
-            >
-              <ChevronRight size={16} />
-            </button>
-
-            {/* Last Page */}
-            <button
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={validPage === totalPages}
-              title="Last Page"
-              className="p-2 rounded-lg bg-white/5 hover:bg-white/15 disabled:opacity-25 disabled:cursor-not-allowed transition text-gray-300"
-            >
-              <ChevronsRight size={16} />
-            </button>
-          </div>
-        </div>
+          <select value={itemsPerPage} onChange={e => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+            style={{ padding: "6px 10px", borderRadius: 8, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)", color: "white", fontSize: 12, outline: "none", cursor: "pointer", fontFamily: "var(--font-body)" }}>
+            <option value={10} style={{ background: "#0f1629" }}>10 / page</option>
+            <option value={25} style={{ background: "#0f1629" }}>25 / page</option>
+            <option value={50} style={{ background: "#0f1629" }}>50 / page</option>
+          </select>
+        </motion.div>
       )}
-
     </div>
   );
 }

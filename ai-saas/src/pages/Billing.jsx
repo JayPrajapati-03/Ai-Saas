@@ -1,166 +1,203 @@
 import { useState } from "react";
-import { Check, CreditCard, Clock } from "lucide-react";
+import { motion } from "framer-motion";
+import { Check, CreditCard, Clock, Zap, Shield, Star, Crown } from "lucide-react";
+
+const plans = [
+  {
+    name: "Basic",
+    price: "Free",
+    desc: "Great for getting started",
+    credits: "Unlimited credits",
+    icon: <Zap size={20} />,
+    color: "#6ee7b7",
+    bg: "rgba(16,185,129,0.1)",
+    border: "rgba(16,185,129,0.3)",
+    features: ["AI Text Generation", "AI Summarizer", "Basic Translator", "Image Generator (10/day)"],
+    popular: false,
+  },
+  {
+    name: "Pro",
+    price: "$9.99",
+    desc: "Perfect for serious creators",
+    credits: "2,000 credits / month",
+    icon: <Star size={20} />,
+    color: "#c4b5fd",
+    bg: "rgba(124,58,237,0.12)",
+    border: "rgba(124,58,237,0.5)",
+    features: ["Everything in Basic", "Fast AI responses", "HD Image Generation", "500 images / month", "Priority support"],
+    popular: true,
+  },
+  {
+    name: "Ultimate",
+    price: "$19.99",
+    desc: "For power users and teams",
+    credits: "5,000 credits / month",
+    icon: <Crown size={20} />,
+    color: "#fcd34d",
+    bg: "rgba(245,158,11,0.1)",
+    border: "rgba(245,158,11,0.35)",
+    features: ["Everything in Pro", "Ultra-fast AI", "Unlimited images", "API access", "Dedicated support"],
+    popular: false,
+  },
+];
 
 export default function Billing() {
   const [selectedPlan, setSelectedPlan] = useState(null);
-  const [activePlan, setActivePlan] = useState("Basic");
-  const [credits, setCredits] = useState("Unlimited credits");
-  const [history, setHistory] = useState([]);
-
-  const plans = [
-    {
-      name: "Basic",
-      price: "Free",
-      credits: "Unlimited credits",
-      features: [
-        "AI Text",
-        "AI Summarizer",
-        "Basic Translation",
-        "Basic Image Generator",
-      ],
-    },
-    {
-      name: "Pro",
-      price: "$9.99",
-      credits: "2000 credits / month",
-      features: [
-        "AI Text (Fast)",
-        "AI Summarizer Pro",
-        "Image Generator",
-        "Advanced Translator",
-      ],
-    },
-    {
-      name: "Ultimate",
-      price: "$19.99",
-      credits: "5000 credits / month",
-      features: [
-        "Ultra Fast AI",
-        "Image HD Generation",
-        "Priority Queue",
-        "All Features Included",
-      ],
-    },
-  ];
+  const [activePlan, setActivePlan]     = useState("Basic");
+  const [credits, setCredits]           = useState("Unlimited credits");
+  const [history, setHistory]           = useState([]);
 
   const handleUpgrade = (plan) => {
     setActivePlan(plan.name);
+    if (plan.name === "Basic") setCredits("Unlimited credits");
+    else if (plan.name === "Pro") setCredits("2,000");
+    else if (plan.name === "Ultimate") setCredits("5,000");
 
-    // Update credits based on plan
-    if (plan.name === "Basic") {
-      setCredits("Unlimited credits");
-    } else if (plan.name === "Pro") {
-      setCredits("2000");
-    } else if (plan.name === "Ultimate") {
-      setCredits("5000");
-    }
-
-    // Add to history if it's not free
     if (plan.price !== "Free") {
-      const newTransaction = {
-        id: Date.now(),
-        plan: `${plan.name} Plan`,
-        amount: plan.price,
-        date: new Date().toISOString().split('T')[0]
-      };
-      setHistory([newTransaction, ...history]);
+      setHistory([{ id: Date.now(), plan: `${plan.name} Plan`, amount: plan.price, date: new Date().toISOString().split("T")[0] }, ...history]);
     }
-
-    // Remove highlight after selection
     setSelectedPlan(null);
   };
 
   return (
-    <div className="space-y-8">
+    <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
 
-      {/* Page Title */}
-      <h1 className="text-3xl font-bold">
-        Billing <span className="text-indigo-400">Center</span>
-      </h1>
-
-      {/* Current Plan */}
-      <div className="p-6 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10">
-        <h2 className="text-xl font-semibold">Your Current Plan</h2>
-
-        <p className="text-gray-300 mt-2">
-          <span className="text-indigo-400 font-semibold">{activePlan} Plan</span> — renews monthly
-        </p>
-
-        <div className="mt-4 p-4 bg-black/20 rounded-xl border border-white/10">
-          <p className="text-gray-300">Credits remaining:</p>
-          <h1 className="text-4xl font-bold text-green-400 mt-1">{credits}</h1>
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+        style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <CreditCard size={22} style={{ color: "#c4b5fd" }} />
         </div>
-      </div>
+        <div>
+          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 26, fontWeight: 700, letterSpacing: "-0.01em" }}>
+            Billing <span className="gradient-text">Center</span>
+          </h1>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>Manage your plan and credits</p>
+        </div>
+      </motion.div>
 
-      {/* Pricing Plans */}
-      <h2 className="text-2xl font-bold">Upgrade Your Plan</h2>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {plans.map((plan, index) => (
-          <div
-            key={index}
-            onClick={() => setSelectedPlan(plan.name)}
-            className={`p-6 rounded-2xl backdrop-blur-xl border cursor-pointer transition-all duration-300 ${selectedPlan === plan.name
-              ? "bg-indigo-600/20 border-indigo-500 scale-105 shadow-lg shadow-indigo-500/20"
-              : "bg-white/10 border-white/10 hover:border-white/30"
-              }`}
-          >
-            <h3 className="text-2xl font-bold">{plan.name}</h3>
-            <p className="text-3xl font-semibold mt-2">{plan.price}</p>
-            <p className="text-gray-300 mt-1">{plan.credits}</p>
-
-            <ul className="mt-4 space-y-2">
-              {plan.features.map((f, i) => (
-                <li key={i} className="flex items-center gap-2 whitespace-nowrap">
-                  <Check size={18} className="text-green-400" /> {f}
-                </li>
-              ))}
-            </ul>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation(); // Prevent card click
-                handleUpgrade(plan);
-              }}
-              className={`mt-6 w-full px-4 py-3 rounded-xl font-semibold transition ${selectedPlan === plan.name
-                ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-                : "bg-white/10 hover:bg-white/20 text-gray-300"
-                }`}
-            >
-              {activePlan === plan.name ? "Current Plan" : (selectedPlan === plan.name ? "Upgrade Now" : "Choose Plan")}
-            </button>
+      {/* Current Plan Banner */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+        style={{
+          padding: "28px 32px",
+          background: "linear-gradient(135deg,rgba(124,58,237,0.12),rgba(6,182,212,0.08))",
+          border: "1px solid rgba(124,58,237,0.35)",
+          borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16,
+          boxShadow: "0 0 30px rgba(124,58,237,0.1)",
+        }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <Shield size={16} style={{ color: "#c4b5fd" }} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#c4b5fd", letterSpacing: "0.05em" }}>CURRENT PLAN</span>
           </div>
-        ))}
+          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 24, fontWeight: 700 }}>
+            <span className="gradient-text">{activePlan} Plan</span>
+          </h2>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4 }}>Renews monthly · No hidden fees</p>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Credits Remaining</div>
+          <div style={{ fontFamily: "var(--font-heading)", fontSize: 38, fontWeight: 700, color: "#6ee7b7", lineHeight: 1 }}>{credits}</div>
+        </div>
+      </motion.div>
+
+      {/* Plan Cards */}
+      <div>
+        <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 20, fontWeight: 700, marginBottom: 18 }}>Choose Your Plan</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 18 }}>
+          {plans.map((plan, i) => {
+            const isActive   = activePlan === plan.name;
+            const isSelected = selectedPlan === plan.name;
+            return (
+              <motion.div
+                key={plan.name}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 + i * 0.07 }}
+                whileHover={{ y: -3 }}
+                onClick={() => setSelectedPlan(plan.name)}
+                style={{
+                  padding: "28px 24px", borderRadius: 18, position: "relative", cursor: "pointer", transition: "all 0.25s",
+                  background: isSelected ? plan.bg : (plan.popular ? "rgba(124,58,237,0.08)" : "var(--bg-card)"),
+                  border: `1px solid ${isSelected || isActive ? plan.border : (plan.popular ? "rgba(124,58,237,0.4)" : "var(--border)")}`,
+                  boxShadow: isSelected || plan.popular ? `0 0 30px ${plan.bg}` : "none",
+                }}
+              >
+                {plan.popular && (
+                  <div style={{ position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)", background: "linear-gradient(135deg,#7c3aed,#06b6d4)", color: "white", fontSize: 10, fontWeight: 700, padding: "4px 14px", borderRadius: 999, letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                    ✨ MOST POPULAR
+                  </div>
+                )}
+                {isActive && (
+                  <div style={{ position: "absolute", top: 14, right: 14, fontSize: 10, fontWeight: 700, padding: "3px 10px", borderRadius: 999, background: "rgba(16,185,129,0.15)", color: "#6ee7b7", border: "1px solid rgba(16,185,129,0.3)" }}>
+                    ACTIVE
+                  </div>
+                )}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: plan.bg, border: `1px solid ${plan.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: plan.color }}>
+                    {plan.icon}
+                  </div>
+                  <span style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 700 }}>{plan.name}</span>
+                </div>
+                <div style={{ fontFamily: "var(--font-heading)", fontSize: 36, fontWeight: 800, color: plan.color, lineHeight: 1, margin: "12px 0 4px" }}>
+                  {plan.price}{plan.price !== "Free" && <span style={{ fontSize: 14, color: "var(--text-secondary)", fontFamily: "var(--font-body)", fontWeight: 400 }}>/mo</span>}
+                </div>
+                <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 4 }}>{plan.desc}</p>
+                <p style={{ fontSize: 12, color: plan.color, fontWeight: 600, marginBottom: 18 }}>{plan.credits}</p>
+                <div className="glow-divider" style={{ marginBottom: 18 }} />
+                <ul style={{ listStyle: "none", padding: 0, margin: "0 0 20px", display: "flex", flexDirection: "column", gap: 10 }}>
+                  {plan.features.map((f, j) => (
+                    <li key={j} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, color: "var(--text-primary)" }}>
+                      <Check size={15} style={{ color: plan.color, flexShrink: 0 }} /> {f}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleUpgrade(plan); }}
+                  style={{
+                    width: "100%", padding: "12px", borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: "pointer",
+                    transition: "all 0.2s", border: "none",
+                    ...(isActive
+                      ? { background: "rgba(16,185,129,0.12)", color: "#6ee7b7", border: "1px solid rgba(16,185,129,0.3)", cursor: "default" }
+                      : isSelected || plan.popular
+                      ? { background: `linear-gradient(135deg,${plan.color === "#c4b5fd" ? "#7c3aed,#0891b2" : plan.color === "#fcd34d" ? "#d97706,#b45309" : "#059669,#0891b2"})`, color: "white", boxShadow: `0 4px 16px ${plan.bg}` }
+                      : { background: "rgba(255,255,255,0.07)", color: "var(--text-secondary)", border: "1px solid rgba(255,255,255,0.1)" }),
+                  }}
+                >
+                  {isActive ? "✓ Current Plan" : isSelected ? "Upgrade Now" : "Choose Plan"}
+                </button>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Payment History */}
       <div>
-        <h2 className="text-2xl font-bold mt-6">Payment History</h2>
-
-        <div className="mt-4 p-6 bg-white/10 backdrop-blur-xl border border-white/10 rounded-2xl">
+        <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 20, fontWeight: 700, marginBottom: 16 }}>Payment History</h2>
+        <div style={{ padding: "24px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 18 }}>
           {history.length === 0 ? (
-            <p className="text-gray-300">No transactions found.</p>
+            <div style={{ textAlign: "center", padding: "24px 0" }}>
+              <CreditCard size={36} style={{ color: "var(--text-muted)", margin: "0 auto 10px", display: "block", opacity: 0.3 }} />
+              <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>No transactions yet</p>
+            </div>
           ) : (
-            <div className="space-y-4">
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {history.map((h) => (
-                <div
-                  key={h.id}
-                  className="flex items-center justify-between bg-black/20 p-4 rounded-xl border border-white/10"
-                >
+                <div key={h.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12 }}>
                   <div>
-                    <p className="font-semibold">{h.plan}</p>
-                    <p className="text-gray-400 text-sm flex items-center gap-1">
-                      <Clock size={16} /> {h.date}
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "white" }}>{h.plan}</p>
+                    <p style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--text-muted)", marginTop: 3 }}>
+                      <Clock size={12} /> {h.date}
                     </p>
                   </div>
-                  <p className="font-semibold text-indigo-400">{h.amount}</p>
+                  <span style={{ fontFamily: "var(--font-heading)", fontSize: 16, fontWeight: 700, color: "#c4b5fd" }}>{h.amount}</span>
                 </div>
               ))}
             </div>
           )}
         </div>
       </div>
-
     </div>
   );
 }

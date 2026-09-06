@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -34,6 +34,8 @@ function App() {
           <Route path="billing" element={<Billing />} />
           <Route path="admin" element={<AdminDashboard />} />
         </Route>
+        {/* Catch-all redirect to Landing */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   )

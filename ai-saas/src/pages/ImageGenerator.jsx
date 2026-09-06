@@ -1,86 +1,70 @@
 import { useState, useEffect } from "react";
-import { Loader2, Download, Sparkles, AlertCircle, ImageIcon } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Loader2, Download, Sparkles, AlertCircle, ImageIcon, Maximize2 } from "lucide-react";
 import { useUsage } from "../context/UsageContext";
 import { API_URL } from "../config/api";
 
+const STYLE_CHIPS = [
+  { label: "Photorealistic", emoji: "📷" },
+  { label: "Digital Art",    emoji: "🎨" },
+  { label: "Anime",          emoji: "🌸" },
+  { label: "Oil Painting",   emoji: "🖼️" },
+  { label: "Cinematic",      emoji: "🎬" },
+  { label: "Pixel Art",      emoji: "🕹️" },
+];
+
+const SIZE_OPTIONS = [
+  { value: "256x256",   label: "256×256",   sub: "Fast" },
+  { value: "512x512",   label: "512×512",   sub: "Standard" },
+  { value: "1024x1024", label: "1024×1024", sub: "HD" },
+];
+
 export default function ImageGenerator() {
-  const [prompt, setPrompt] = useState("");
-  const [size, setSize] = useState("512x512");
-  const [loading, setLoading] = useState(false);
+  const [prompt, setPrompt]         = useState("");
+  const [artStyle, setArtStyle]     = useState("Photorealistic");
+  const [size, setSize]             = useState("512x512");
+  const [loading, setLoading]       = useState(false);
   const [loadingSecs, setLoadingSecs] = useState(0);
-  const [imageUrl, setImageUrl] = useState("");
-  const [error, setError] = useState("");
+  const [imageUrl, setImageUrl]     = useState("");
+  const [error, setError]           = useState("");
+  const [fullscreen, setFullscreen] = useState(false);
   const { incrementUsage } = useUsage();
 
-  // Elapsed seconds timer during generation
   useEffect(() => {
     let interval;
     if (loading) {
       setLoadingSecs(0);
-      interval = setInterval(() => {
-        setLoadingSecs((prev) => prev + 1);
-      }, 1000);
-    } else {
-      setLoadingSecs(0);
-    }
+      interval = setInterval(() => setLoadingSecs(p => p + 1), 1000);
+    } else setLoadingSecs(0);
     return () => clearInterval(interval);
   }, [loading]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
-
-    setLoading(true);
-    setError("");
-    setImageUrl("");
-
+    setLoading(true); setError(""); setImageUrl("");
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 35000); // 35s safety timeout
+    const tid = setTimeout(() => controller.abort(), 35000);
 
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Please log in to generate images.");
-        setLoading(false);
-        clearTimeout(timeoutId);
-        return;
-      }
+      if (!token) { setError("Please log in to generate images."); setLoading(false); clearTimeout(tid); return; }
 
-      const response = await fetch(`${API_URL}/api/image/generate`, {
+      const fullPrompt = `${artStyle} style: ${prompt}`;
+      const res = await fetch(`${API_URL}/api/image/generate`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({ prompt, size }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ prompt: fullPrompt, size }),
         signal: controller.signal,
       });
-
-      clearTimeout(timeoutId);
-      const data = await response.json();
-
-      if (response.ok && data.success && data.image) {
-        setImageUrl(data.image);
-        incrementUsage();
-      } else {
-        setError(data.message || "Failed to generate image. Please try again.");
-      }
+      clearTimeout(tid);
+      const data = await res.json();
+      if (res.ok && data.success && data.image) { setImageUrl(data.image); incrementUsage(); }
+      else setError(data.message || "Failed to generate image. Please try again.");
     } catch (err) {
-      clearTimeout(timeoutId);
-      if (err.name === "AbortError") {
-        setError("Generation took longer than 35s. Please try again.");
-      } else {
-        console.error("Error generating image:", err);
-        setError("Network error: Unable to communicate with the server. Please try again.");
-      }
-    } finally {
-      clearTimeout(timeoutId);
-      setLoading(false);
-    }
-  };
-
-  const handleImageError = () => {
-    setError("Failed to render the image data. Please try generating again.");
-    setImageUrl("");
+      clearTimeout(tid);
+      if (err.name === "AbortError") setError("Generation took too long. Please try again.");
+      else setError("Network error. Unable to connect to the server.");
+    } finally { setLoading(false); }
   };
 
   const handleDownload = async () => {
@@ -88,155 +72,181 @@ export default function ImageGenerator() {
     try {
       if (imageUrl.startsWith("data:")) {
         const link = document.createElement("a");
-        link.href = imageUrl;
-        link.download = `ai-image-${Date.now()}.jpg`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        link.href = imageUrl; link.download = `ai-image-${Date.now()}.jpg`;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
       } else {
-        const res = await fetch(imageUrl);
-        const blob = await res.blob();
-        const blobUrl = URL.createObjectURL(blob);
+        const blob = await (await fetch(imageUrl)).blob();
+        const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
-        link.href = blobUrl;
-        link.download = `ai-image-${Date.now()}.jpg`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(blobUrl);
+        link.href = url; link.download = `ai-image-${Date.now()}.jpg`;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        URL.revokeObjectURL(url);
       }
-    } catch (e) {
-      window.open(imageUrl, "_blank");
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleGenerate();
-    }
+    } catch { window.open(imageUrl, "_blank"); }
   };
 
   return (
-    <div className="space-y-8">
-      {/* Page Title */}
-      <h1 className="text-3xl font-bold flex items-center gap-3">
-        Image Generator <span className="text-indigo-400">AI</span>
-        <Sparkles className="text-indigo-400" size={28} />
-      </h1>
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
-      {/* Prompt + Controls */}
-      <div className="p-6 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 shadow-lg">
-        <h2 className="text-lg font-semibold mb-3">Enter Prompt</h2>
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+        style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(236,72,153,0.15)", border: "1px solid rgba(236,72,153,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <ImageIcon size={22} style={{ color: "#f9a8d4" }} />
+        </div>
+        <div>
+          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 26, fontWeight: 700, letterSpacing: "-0.01em" }}>
+            Image <span style={{ background: "linear-gradient(135deg,#f9a8d4,#c4b5fd)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Generator</span>
+          </h1>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>Create stunning AI images from text descriptions</p>
+        </div>
+      </motion.div>
 
-        <input
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Describe the image you want to generate (e.g. sunset over mountains, futuristic robot)..."
-          className="w-full p-4 bg-black/20 border border-white/10 rounded-xl text-white outline-none focus:border-indigo-500 transition"
-        />
+      {/* Controls */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+        style={{ padding: "24px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, display: "flex", flexDirection: "column", gap: 20 }}>
+
+        {/* Art Style */}
+        <div>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.04em", marginBottom: 12 }}>ART STYLE</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {STYLE_CHIPS.map(({ label, emoji }) => (
+              <button key={label} onClick={() => setArtStyle(label)}
+                style={{
+                  padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 500, cursor: "pointer", transition: "all 0.2s", border: "1px solid",
+                  ...(artStyle === label
+                    ? { background: "rgba(236,72,153,0.2)", borderColor: "rgba(236,72,153,0.5)", color: "#f9a8d4", boxShadow: "0 0 12px rgba(236,72,153,0.2)" }
+                    : { background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.08)", color: "var(--text-secondary)" }),
+                }}
+                onMouseEnter={e => { if (artStyle !== label) { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = "white"; }}}
+                onMouseLeave={e => { if (artStyle !== label) { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "var(--text-secondary)"; }}}
+              >
+                {emoji} {label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Image Size */}
-        <div className="mt-5">
-          <h3 className="font-semibold mb-2">Select Size</h3>
-          <select
-            value={size}
-            onChange={(e) => {
-              setSize(e.target.value);
-              setError("");
-            }}
-            className="w-full p-3 rounded-xl bg-black/20 border border-white/10 text-white outline-none focus:border-indigo-500 transition"
-          >
-            <option value="256x256">256 × 256 (Fast)</option>
-            <option value="512x512">512 × 512 (Standard)</option>
-            <option value="1024x1024">1024 × 1024 (HD)</option>
-          </select>
+        <div>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.04em", marginBottom: 12 }}>IMAGE SIZE</label>
+          <div style={{ display: "flex", gap: 10 }}>
+            {SIZE_OPTIONS.map(({ value, label, sub }) => (
+              <button key={value} onClick={() => { setSize(value); setError(""); }}
+                style={{
+                  flex: 1, padding: "12px", borderRadius: 12, cursor: "pointer", transition: "all 0.2s", border: "1px solid", textAlign: "center",
+                  ...(size === value
+                    ? { background: "rgba(124,58,237,0.2)", borderColor: "rgba(124,58,237,0.5)", boxShadow: "0 0 12px rgba(124,58,237,0.2)" }
+                    : { background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.08)" }),
+                }}>
+                <div style={{ fontFamily: "var(--font-heading)", fontSize: 15, fontWeight: 700, color: size === value ? "#c4b5fd" : "var(--text-primary)" }}>{label}</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{sub}</div>
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Generate Button */}
-        <button
-          onClick={handleGenerate}
-          disabled={loading || !prompt.trim()}
-          className="mt-5 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 transition text-white font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-indigo-600/20"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="animate-spin" size={20} />
-              Generating ({loadingSecs}s)...
-            </>
-          ) : (
-            <>
-              <Sparkles size={20} />
-              Generate Image
-            </>
-          )}
-        </button>
-      </div>
+        {/* Prompt */}
+        <div>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.04em", marginBottom: 12 }}>IMAGE DESCRIPTION</label>
+          <input
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleGenerate(); }}
+            placeholder="Describe your image... e.g. 'sunset over futuristic cityscape, neon lights reflecting on wet streets'"
+            className="input-premium"
+            style={{ marginBottom: 16 }}
+          />
+          <button onClick={handleGenerate} disabled={loading || !prompt.trim()} className="btn-primary"
+            style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {loading ? <><Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} /> Generating ({loadingSecs}s)...</>
+                     : <><Sparkles size={18} /> Generate Image</>}
+          </button>
+        </div>
+      </motion.div>
 
-      {/* Output Section */}
-      <div className="p-6 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 shadow-lg">
-        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
-          <ImageIcon size={20} className="text-indigo-400" />
-          Generated Image
-        </h2>
+      {/* Output */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+        style={{ padding: "24px", background: "rgba(236,72,153,0.05)", border: "1px solid rgba(236,72,153,0.2)", borderRadius: 16 }}>
+        <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#f9a8d4", letterSpacing: "0.04em", marginBottom: 16 }}>GENERATED IMAGE</label>
 
-        {/* Error Notice */}
         {error && (
-          <div className="mb-4 p-4 rounded-xl bg-red-500/20 border border-red-500/30 text-red-300 text-sm flex items-start justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <AlertCircle size={18} className="shrink-0 text-red-400" />
-              <span>{error}</span>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            style={{ marginBottom: 16, padding: "14px 16px", borderRadius: 12, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#fca5a5", fontSize: 14 }}>
+              <AlertCircle size={17} style={{ flexShrink: 0 }} /> {error}
             </div>
-            <button
-              onClick={() => setError("")}
-              className="text-red-400 hover:text-red-200 font-bold px-1 text-base leading-none"
-            >
-              ✕
-            </button>
-          </div>
+            <button onClick={() => setError("")} style={{ background: "none", border: "none", color: "#fca5a5", cursor: "pointer", fontSize: 18, lineHeight: 1 }}>×</button>
+          </motion.div>
         )}
 
-        <div className="min-h-64 flex items-center justify-center bg-black/20 rounded-xl border border-white/10 p-6">
+        <div style={{ minHeight: 300, borderRadius: 14, background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", position: "relative" }}>
           {loading ? (
-            <div className="flex flex-col items-center gap-3 py-8">
-              <Loader2 className="animate-spin text-indigo-400" size={40} />
-              <div className="animate-pulse text-gray-300 font-medium">
-                Generating image with AI... ({loadingSecs}s)
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: 40 }}>
+              <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(236,72,153,0.15)", border: "2px solid rgba(236,72,153,0.4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Loader2 size={28} style={{ color: "#f9a8d4", animation: "spin 1s linear infinite" }} />
               </div>
-              <p className="text-xs text-gray-400">
-                {loadingSecs < 8
-                  ? "Fetching rendering, usually takes 3 to 8 seconds"
-                  : "Rendering high details, almost done..."}
-              </p>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ color: "var(--text-primary)", fontWeight: 600, marginBottom: 4 }}>Generating your image ({loadingSecs}s)</div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                  {loadingSecs < 8 ? "Usually takes 3-8 seconds..." : "Adding fine details, almost done..."}
+                </div>
+              </div>
+              <div style={{ width: 200, height: 4, borderRadius: 4, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+                <div className="shimmer" style={{ height: "100%", borderRadius: 4 }} />
+              </div>
             </div>
           ) : imageUrl ? (
-            <div className="flex flex-col items-center gap-5 w-full">
-              <div className="relative group max-w-lg w-full flex justify-center">
-                <img
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, width: "100%", padding: 20 }}>
+              <div style={{ position: "relative", display: "inline-block" }}>
+                <motion.img
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4 }}
                   src={imageUrl}
-                  alt={prompt || "Generated AI image"}
-                  className="rounded-xl border border-white/10 shadow-2xl max-w-full max-h-[512px] object-contain transition-transform duration-300 hover:scale-[1.01]"
-                  onError={handleImageError}
+                  alt={prompt}
+                  style={{ borderRadius: 12, border: "1px solid rgba(255,255,255,0.1)", maxWidth: "100%", maxHeight: 480, objectFit: "contain", boxShadow: "0 8px 32px rgba(0,0,0,0.5)" }}
+                  onError={() => { setError("Failed to render the image. Please try again."); setImageUrl(""); }}
                 />
+                <button onClick={() => setFullscreen(true)}
+                  style={{ position: "absolute", top: 10, right: 10, width: 34, height: 34, borderRadius: 9, background: "rgba(0,0,0,0.6)", border: "1px solid rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "white", transition: "background 0.2s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(0,0,0,0.85)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "rgba(0,0,0,0.6)"}>
+                  <Maximize2 size={15} />
+                </button>
               </div>
-
-              <button
-                onClick={handleDownload}
-                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 transition rounded-xl flex items-center gap-2 text-white font-medium shadow-lg hover:shadow-indigo-500/30"
-              >
-                <Download size={18} /> Download Image
-              </button>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button onClick={handleDownload} className="btn-primary" style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 22px", fontSize: 14 }}>
+                  <Download size={16} /> Download
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="text-center py-8 text-gray-400">
-              <ImageIcon size={48} className="mx-auto mb-2 opacity-30" />
-              <p>Your generated image will appear here.</p>
-              <p className="text-xs text-gray-500 mt-1">Enter a prompt above and click &quot;Generate Image&quot;</p>
+            <div style={{ textAlign: "center", padding: 40, color: "var(--text-muted)" }}>
+              <ImageIcon size={52} style={{ marginBottom: 12, opacity: 0.25 }} />
+              <p style={{ fontSize: 14 }}>Your generated image will appear here</p>
+              <p style={{ fontSize: 12, marginTop: 6, opacity: 0.7 }}>Enter a description and click "Generate Image"</p>
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
+
+      {/* Fullscreen modal */}
+      <AnimatePresence>
+        {fullscreen && imageUrl && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setFullscreen(false)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.92)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: 32, cursor: "zoom-out" }}>
+            <motion.img initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
+              src={imageUrl} alt={prompt}
+              style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 12, boxShadow: "0 0 60px rgba(0,0,0,0.8)" }} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 }

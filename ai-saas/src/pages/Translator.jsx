@@ -1,163 +1,201 @@
 import { useState } from "react";
-import { Loader2, ArrowRightLeft } from "lucide-react";
+import { motion } from "framer-motion";
+import { Loader2, ArrowRightLeft, Globe, Copy, Check } from "lucide-react";
 import { useUsage } from "../context/UsageContext";
 import { API_URL } from "../config/api";
 
-export default function Translator() {
-  const [inputText, setInputText] = useState("");
-  const [fromLang, setFromLang] = useState("en");
-  const [toLang, setToLang] = useState("hi");
-  const [loading, setLoading] = useState(false);
-  const [outputText, setOutputText] = useState("");
-  const { incrementUsage } = useUsage();
+const languages = [
+  { code: "en", name: "English",  flag: "🇺🇸" },
+  { code: "hi", name: "Hindi",    flag: "🇮🇳" },
+  { code: "es", name: "Spanish",  flag: "🇪🇸" },
+  { code: "fr", name: "French",   flag: "🇫🇷" },
+  { code: "de", name: "German",   flag: "🇩🇪" },
+  { code: "ja", name: "Japanese", flag: "🇯🇵" },
+  { code: "zh", name: "Chinese",  flag: "🇨🇳" },
+];
 
-  const languages = [
-    { code: "en", name: "English" },
-    { code: "hi", name: "Hindi" },
-    { code: "es", name: "Spanish" },
-    { code: "fr", name: "French" },
-    { code: "de", name: "German" },
-    { code: "ja", name: "Japanese" },
-    { code: "zh", name: "Chinese" },
-  ];
+function LangSelect({ value, onChange }) {
+  return (
+    <select value={value} onChange={e => onChange(e.target.value)}
+      style={{
+        padding: "10px 14px", borderRadius: 10, fontSize: 14, fontWeight: 500,
+        background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)",
+        color: "white", outline: "none", cursor: "pointer", width: "100%",
+        fontFamily: "var(--font-body)",
+      }}>
+      {languages.map(l => (
+        <option key={l.code} value={l.code} style={{ background: "#0f1629" }}>
+          {l.flag} {l.name}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+export default function Translator() {
+  const [inputText, setInputText]   = useState("");
+  const [fromLang, setFromLang]     = useState("en");
+  const [toLang, setToLang]         = useState("hi");
+  const [loading, setLoading]       = useState(false);
+  const [outputText, setOutputText] = useState("");
+  const [copied, setCopied]         = useState(false);
+  const { incrementUsage } = useUsage();
 
   const handleTranslate = async () => {
     if (!inputText.trim()) return;
-
-    setLoading(true);
-    setOutputText("");
+    setLoading(true); setOutputText("");
 
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        setOutputText("Please login to use this feature.");
-        setLoading(false);
-        return;
-      }
+      if (!token) { setOutputText("Please login to use this feature."); setLoading(false); return; }
 
-      // Find the full language name for better AI context
-      const targetLangName = languages.find((l) => l.code === toLang)?.name || toLang;
-
-      const response = await fetch(`${API_URL}/api/ai/translate`, {
+      const targetLangName = languages.find(l => l.code === toLang)?.name || toLang;
+      const res = await fetch(`${API_URL}/api/ai/translate`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          text: inputText,
-          targetLanguage: targetLangName,
-        }),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ text: inputText, targetLanguage: targetLangName }),
       });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setOutputText(data.translated);
-        incrementUsage();
-      } else {
-        setOutputText(`Error: ${data.message || "Failed to translate"}`);
-      }
-    } catch (error) {
-      setOutputText("Network error. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+      const data = await res.json();
+      if (data.success) { setOutputText(data.translated); incrementUsage(); }
+      else setOutputText(`Error: ${data.message || "Failed to translate"}`);
+    } catch { setOutputText("Network error. Please try again."); }
+    finally { setLoading(false); }
   };
 
   const swapLanguages = () => {
     const prev = fromLang;
     setFromLang(toLang);
     setToLang(prev);
+    setInputText(outputText);
+    setOutputText(inputText);
   };
 
+  const handleCopy = () => {
+    if (!outputText) return;
+    navigator.clipboard.writeText(outputText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const fromLangData = languages.find(l => l.code === fromLang);
+  const toLangData   = languages.find(l => l.code === toLang);
+
   return (
-    <div className="space-y-8">
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
-      {/* Page Title */}
-      <h1 className="text-3xl font-bold">
-        Translator <span className="text-indigo-400">AI</span>
-      </h1>
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+        style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Globe size={22} style={{ color: "#fcd34d" }} />
+        </div>
+        <div>
+          <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 26, fontWeight: 700, letterSpacing: "-0.01em" }}>
+            AI <span style={{ background: "linear-gradient(135deg,#fcd34d,#fb923c)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Translator</span>
+          </h1>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>Translate text across 7+ languages with AI precision</p>
+        </div>
+      </motion.div>
 
-      {/* Input Section */}
-      <div className="p-6 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10">
-
-        <h2 className="text-lg font-semibold mb-3">Enter Text</h2>
-
-        <textarea
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          placeholder="Type or paste the text to translate..."
-          className="w-full h-40 p-4 bg-black/20 border border-white/10 rounded-xl text-white outline-none resize-none"
-        />
-
-        {/* Language Selectors */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
-
-          {/* From */}
-          <div>
-            <label className="text-sm text-gray-300">From Language</label>
-            <select
-              value={fromLang}
-              onChange={(e) => setFromLang(e.target.value)}
-              className="w-full p-3 mt-1 rounded-xl bg-black/20 border border-white/10 text-white outline-none"
-            >
-              {languages.map((lang) => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Swap Button */}
-          <div className="flex items-end justify-center">
-            <button
-              onClick={swapLanguages}
-              className="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition"
-            >
-              <ArrowRightLeft size={22} />
-            </button>
-          </div>
-
-          {/* To */}
-          <div>
-            <label className="text-sm text-gray-300">To Language</label>
-            <select
-              value={toLang}
-              onChange={(e) => setToLang(e.target.value)}
-              className="w-full p-3 mt-1 rounded-xl bg-black/20 border border-white/10 text-white outline-none"
-            >
-              {languages.map((lang) => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.name}
-                </option>
-              ))}
-            </select>
-          </div>
+      {/* Language Bar */}
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+        style={{ padding: "20px 24px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ flex: 1 }}>
+          <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-muted)", letterSpacing: "0.05em", marginBottom: 8 }}>FROM</label>
+          <LangSelect value={fromLang} onChange={setFromLang} />
         </div>
 
-        {/* Translate Button */}
-        <button
-          onClick={handleTranslate}
-          disabled={loading}
-          className="mt-5 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 transition text-white font-semibold flex items-center gap-2 disabled:opacity-50"
-        >
-          {loading && <Loader2 className="animate-spin" size={20} />}
-          Translate
-        </button>
-      </div>
-
-      {/* Output Section */}
-      <div className="p-6 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10">
-        <h2 className="text-lg font-semibold mb-3">Translated Text</h2>
-
-        <div className="min-h-32 p-4 bg-black/20 rounded-xl border border-white/10 text-gray-200 whitespace-pre-wrap">
-          {loading
-            ? "Translating..."
-            : outputText || "Your translated text will appear here."}
+        {/* Swap button */}
+        <div style={{ paddingTop: 18, flexShrink: 0 }}>
+          <motion.button
+            onClick={swapLanguages}
+            whileTap={{ rotate: 180 }}
+            whileHover={{ scale: 1.08 }}
+            style={{
+              width: 42, height: 42, borderRadius: 12, cursor: "pointer",
+              background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fcd34d", transition: "all 0.2s",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(245,158,11,0.22)"}
+            onMouseLeave={e => e.currentTarget.style.background = "rgba(245,158,11,0.12)"}
+          >
+            <ArrowRightLeft size={18} />
+          </motion.button>
         </div>
+
+        <div style={{ flex: 1 }}>
+          <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text-muted)", letterSpacing: "0.05em", marginBottom: 8 }}>TO</label>
+          <LangSelect value={toLang} onChange={setToLang} />
+        </div>
+      </motion.div>
+
+      {/* Translation panels */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+
+        {/* Input */}
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}
+          style={{ padding: "20px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-secondary)" }}>
+              {fromLangData?.flag} {fromLangData?.name}
+            </span>
+            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{inputText.length} chars</span>
+          </div>
+          <textarea
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder={`Type in ${fromLangData?.name}...`}
+            className="textarea-premium"
+            style={{ flex: 1, minHeight: 200 }}
+          />
+          <button onClick={handleTranslate} disabled={loading || !inputText.trim()} className="btn-primary"
+            style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center",
+              background: "linear-gradient(135deg,#d97706,#b45309)" }}>
+            {loading ? <><Loader2 size={17} style={{ animation: "spin 1s linear infinite" }} /> Translating...</>
+                     : <><ArrowRightLeft size={17} /> Translate</>}
+          </button>
+        </motion.div>
+
+        {/* Output */}
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
+          style={{ padding: "20px", background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#fcd34d" }}>
+              {toLangData?.flag} {toLangData?.name}
+            </span>
+            {outputText && !loading && (
+              <button onClick={handleCopy}
+                style={{
+                  display: "flex", alignItems: "center", gap: 5, padding: "4px 12px",
+                  borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  border: "1px solid", transition: "all 0.2s",
+                  ...(copied
+                    ? { background: "rgba(16,185,129,0.15)", borderColor: "rgba(16,185,129,0.4)", color: "#6ee7b7" }
+                    : { background: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.1)", color: "var(--text-secondary)" }),
+                }}>
+                {copied ? <><Check size={11} /> Copied</> : <><Copy size={11} /> Copy</>}
+              </button>
+            )}
+          </div>
+          <div style={{
+            flex: 1, minHeight: 200, padding: "14px", borderRadius: 12,
+            background: "rgba(0,0,0,0.2)", border: "1px solid rgba(245,158,11,0.15)",
+            color: loading ? "var(--text-muted)" : "var(--text-primary)",
+            fontSize: 15, lineHeight: 1.7, whiteSpace: "pre-wrap",
+            fontStyle: loading ? "italic" : "normal",
+          }}>
+            {loading ? "✨ Translating..." : outputText || "Translation will appear here..."}
+          </div>
+        </motion.div>
       </div>
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @media (max-width: 640px) {
+          .translator-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }
