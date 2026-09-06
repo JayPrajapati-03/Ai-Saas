@@ -60,6 +60,7 @@ export const loginUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        plan: user.plan || "Basic",
       },
     });
   } catch (error) {
@@ -69,7 +70,9 @@ export const loginUser = async (req, res) => {
 
 export const getUserStats = async (req, res) => {
   try {
-    let user = await User.findById(req.user.id).select('credits todayUsage userLevel totalUsage lastActiveDate');
+    let user = await User.findById(req.user.id).select(
+      "credits todayUsage userLevel totalUsage lastActiveDate plan planStartDate billingHistory"
+    );
     if (!user) return res.status(404).json({ message: "User not found" });
 
     // Check for daily reset
@@ -89,15 +92,21 @@ export const getUserStats = async (req, res) => {
       await user.save();
     }
 
+    const currentPlan = user.plan || "Basic";
+    const creditsValue =
+      currentPlan === "Basic" ? "∞" : user.credits;
+
     res.json({
       success: true,
       stats: {
-        credits: user.credits,
-        todayUsage: user.todayUsage,
-        credits: user.credits,
+        plan: currentPlan,
+        credits: creditsValue,
+        rawCredits: user.credits,
         todayUsage: user.todayUsage,
         userLevel: user.userLevel,
         totalUsage: user.totalUsage || 0,
+        planStartDate: user.planStartDate,
+        billingHistory: user.billingHistory || [],
       },
     });
   } catch (error) {

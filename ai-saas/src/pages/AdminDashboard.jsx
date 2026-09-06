@@ -139,7 +139,40 @@ export default function AdminDashboard() {
                     {user.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: "white" }}>{user.name}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "white" }}>{user.name}</div>
+                      {user.plan && (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            padding: "2px 8px",
+                            borderRadius: 999,
+                            background:
+                              user.plan === "Ultimate"
+                                ? "rgba(245,158,11,0.18)"
+                                : user.plan === "Pro"
+                                ? "rgba(124,58,237,0.2)"
+                                : "rgba(16,185,129,0.18)",
+                            color:
+                              user.plan === "Ultimate"
+                                ? "#fcd34d"
+                                : user.plan === "Pro"
+                                ? "#c4b5fd"
+                                : "#6ee7b7",
+                            border: `1px solid ${
+                              user.plan === "Ultimate"
+                                ? "rgba(245,158,11,0.35)"
+                                : user.plan === "Pro"
+                                ? "rgba(124,58,237,0.35)"
+                                : "rgba(16,185,129,0.3)"
+                            }`,
+                          }}
+                        >
+                          {user.plan}
+                        </span>
+                      )}
+                    </div>
                     <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{user.email}</div>
                   </div>
                 </div>

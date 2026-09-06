@@ -10,6 +10,7 @@ import translatorRoutes from "./routes/translatorRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import imageRoutes from "./routes/imageRoutes.js";
 import historyRoutes from "./routes/historyRoutes.js";
+import billingRoutes from "./routes/billingRoutes.js";
 
 import adminRoutes from "./routes/adminRoutes.js";
 
@@ -30,6 +31,7 @@ app.use((req, res, next) => {
 });
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/billing", billingRoutes);
 app.use("/api/ai", aiTextRoutes);
 app.use("/api/ai", summarizerRoutes);
 app.use("/api/ai", paraphraseRoutes);

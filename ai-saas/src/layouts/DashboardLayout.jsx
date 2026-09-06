@@ -6,6 +6,7 @@ import {
   CreditCard, Settings, Menu, X, ChevronRight, Cpu, LogOut, Bell,
   CheckCheck, Trash2, Zap
 } from "lucide-react";
+import { useUsage } from "../context/UsageContext";
 
 const menuItems = [
   { name: "Dashboard",       icon: Home,       path: "/app",                  color: "#c4b5fd" },
@@ -19,6 +20,7 @@ const menuItems = [
 ];
 
 export default function DashboardLayout() {
+  const { plan = "Basic", credits = "Unlimited credits" } = useUsage() || {};
   const [open, setOpen] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -235,6 +237,62 @@ export default function DashboardLayout() {
             );
           })}
         </nav>
+
+        {/* Sidebar Subscription Widget */}
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              style={{
+                margin: "12px 12px 0",
+                padding: "14px",
+                borderRadius: 14,
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.05em" }}>PLAN</span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    background: plan === "Ultimate" ? "rgba(245,158,11,0.18)" : plan === "Pro" ? "rgba(124,58,237,0.2)" : "rgba(16,185,129,0.18)",
+                    color: plan === "Ultimate" ? "#fcd34d" : plan === "Pro" ? "#c4b5fd" : "#6ee7b7",
+                    border: `1px solid ${plan === "Ultimate" ? "rgba(245,158,11,0.35)" : plan === "Pro" ? "rgba(124,58,237,0.35)" : "rgba(16,185,129,0.3)"}`,
+                  }}
+                >
+                  {plan}
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: "white", fontWeight: 600, marginBottom: 8 }}>
+                {credits}
+              </div>
+              <Link
+                to="/app/billing"
+                style={{
+                  display: "block",
+                  textAlign: "center",
+                  padding: "7px 0",
+                  borderRadius: 8,
+                  background: "rgba(124,58,237,0.15)",
+                  border: "1px solid rgba(124,58,237,0.35)",
+                  color: "#c4b5fd",
+                  textDecoration: "none",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  transition: "background 0.2s",
+                }}
+              >
+                {plan === "Basic" ? "Upgrade Subscription" : "Manage Billing"}
+              </Link>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       {/* ═══════════════════════════════════
@@ -502,7 +560,22 @@ export default function DashboardLayout() {
                     }}
                   >
                     <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                      <div style={{ fontWeight: 600, fontSize: 14, color: "white" }}>{getUserName()}</div>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                        <div style={{ fontWeight: 600, fontSize: 14, color: "white" }}>{getUserName()}</div>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            padding: "2px 8px",
+                            borderRadius: 999,
+                            background: plan === "Ultimate" ? "rgba(245,158,11,0.2)" : plan === "Pro" ? "rgba(124,58,237,0.25)" : "rgba(16,185,129,0.18)",
+                            color: plan === "Ultimate" ? "#fcd34d" : plan === "Pro" ? "#c4b5fd" : "#6ee7b7",
+                            border: `1px solid ${plan === "Ultimate" ? "rgba(245,158,11,0.4)" : plan === "Pro" ? "rgba(124,58,237,0.4)" : "rgba(16,185,129,0.3)"}`,
+                          }}
+                        >
+                          {plan} Tier
+                        </span>
+                      </div>
                       <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getUserEmail()}</div>
                     </div>
                     <div style={{ padding: "8px" }}>

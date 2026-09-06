@@ -20,7 +20,7 @@ export const getDashboardStats = async (req, res) => {
         const recentUsersData = await User.find({})
             .sort({ createdAt: -1 })
             .limit(5)
-            .select('name email createdAt');
+            .select('name email createdAt plan');
 
         // 6. Usage Activity (Last 7 Days)
         const last7Days = new Date();
@@ -60,6 +60,7 @@ export const getDashboardStats = async (req, res) => {
             return {
                 name: user.name,
                 email: user.email,
+                plan: user.plan || "Basic",
                 joined: user.createdAt
             };
         });
