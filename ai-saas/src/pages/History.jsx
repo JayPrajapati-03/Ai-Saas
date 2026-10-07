@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Search, Sparkles, FileText, ImageIcon, Languages,
-  Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, X, Clock
+  Loader2, ChevronsLeft, ChevronsRight, X, Clock
 } from "lucide-react";
 import { API_URL } from "../config/api";
 
@@ -219,17 +219,25 @@ export default function History() {
           </div>
           {totalPages > 1 ? (
             <div style={{ display: "flex", alignItems: "center", justifySelf: "center", gap: 6 }}>
-              {[
-                { icon: ChevronsLeft, action: () => setCurrentPage(1), disabled: validPage === 1 },
-                { icon: ChevronLeft,  action: () => setCurrentPage(p => Math.max(1, p - 1)), disabled: validPage === 1 },
-              ].map(({ icon: Icon, action, disabled }, i) => (
-                <button key={i} onClick={action} disabled={disabled}
-                  style={{ width: 34, height: 34, borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.3 : 1, color: "var(--text-secondary)", transition: "all 0.15s" }}
-                  onMouseEnter={e => { if (!disabled) { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "white"; }}}
-                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "var(--text-secondary)"; }}>
-                  <Icon size={14} />
-                </button>
-              ))}
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={validPage === 1}
+                title="Previous Page"
+                style={{
+                  width: 34, height: 34, borderRadius: 8,
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.09)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: validPage === 1 ? "not-allowed" : "pointer",
+                  opacity: validPage === 1 ? 0.3 : 1,
+                  color: "var(--text-secondary)", transition: "all 0.15s"
+                }}
+                onMouseEnter={e => { if (validPage !== 1) { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "white"; }}}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
+              >
+                <ChevronsLeft size={14} />
+              </button>
+
               {getPageNumbers().map((p, i) => p === "..." ? (
                 <span key={`e${i}`} style={{ padding: "0 4px", color: "var(--text-muted)", fontSize: 13 }}>…</span>
               ) : (
@@ -243,17 +251,25 @@ export default function History() {
                   {p}
                 </button>
               ))}
-              {[
-                { icon: ChevronRight,  action: () => setCurrentPage(p => Math.min(totalPages, p + 1)), disabled: validPage === totalPages },
-                { icon: ChevronsRight, action: () => setCurrentPage(totalPages), disabled: validPage === totalPages },
-              ].map(({ icon: Icon, action, disabled }, i) => (
-                <button key={i} onClick={action} disabled={disabled}
-                  style={{ width: 34, height: 34, borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)", display: "flex", alignItems: "center", justifyContent: "center", cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.3 : 1, color: "var(--text-secondary)", transition: "all 0.15s" }}
-                  onMouseEnter={e => { if (!disabled) { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "white"; }}}
-                  onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "var(--text-secondary)"; }}>
-                  <Icon size={14} />
-                </button>
-              ))}
+
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={validPage === totalPages}
+                title="Next Page"
+                style={{
+                  width: 34, height: 34, borderRadius: 8,
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.09)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: validPage === totalPages ? "not-allowed" : "pointer",
+                  opacity: validPage === totalPages ? 0.3 : 1,
+                  color: "var(--text-secondary)", transition: "all 0.15s"
+                }}
+                onMouseEnter={e => { if (validPage !== totalPages) { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "white"; }}}
+                onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
+              >
+                <ChevronsRight size={14} />
+              </button>
             </div>
           ) : (
             <div style={{ justifySelf: "center" }} />
