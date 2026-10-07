@@ -65,14 +65,62 @@ export const generateImage = async (req, res) => {
           remainingCredits: user.credits || 0,
         });
       }
+      // Deduct credits (save happens at the end with usage stats)
       user.credits = Math.max(0, (user.credits || 0) - imageCost);
-      await user.save();
     }
 
-    const cleanPrompt = prompt.trim();
+    // ---------------------------------------------------------------
+    // Extract art style prefix sent by frontend ("Anime style: cat")
+    // and map it to Pollinations model + quality enhancement keywords
+    // ---------------------------------------------------------------
+    const STYLE_MAP = {
+      "photorealistic": {
+        model: "flux",
+        enhance: "ultra realistic, photorealistic, DSLR, 8k resolution, sharp focus, professional photography"
+      },
+      "digital art": {
+        model: "flux",
+        enhance: "digital art, concept art, ArtStation trending, vibrant colors, detailed illustration"
+      },
+      "anime": {
+        model: "flux",
+        enhance: "anime style, manga illustration, Studio Ghibli, cel shaded, clean linework, vivid colors"
+      },
+      "oil painting": {
+        model: "flux",
+        enhance: "oil painting, canvas texture, impressionist brushwork, rich colors, classical art style"
+      },
+      "cinematic": {
+        model: "flux",
+        enhance: "cinematic shot, movie still, dramatic lighting, anamorphic lens, 4K film grain, epic composition"
+      },
+      "pixel art": {
+        model: "turbo",
+        enhance: "pixel art, 16-bit retro game sprite, pixelated, crisp pixels, low-res aesthetic"
+      },
+    };
+
+    // Parse style from prompt prefix (e.g. "Anime style: cat" → style=anime, subject=cat)
+    let rawPrompt = prompt.trim();
+    let detectedModel = "flux";
+    let subject = rawPrompt;
+
+    const styleMatch = rawPrompt.match(/^(.+?)\s+style:\s*(.+)$/i);
+    if (styleMatch) {
+      const styleKey = styleMatch[1].trim().toLowerCase();
+      subject = styleMatch[2].trim();
+      const styleConf = STYLE_MAP[styleKey];
+      if (styleConf) {
+        detectedModel = styleConf.model;
+        subject = `${subject}, ${styleConf.enhance}`;
+      }
+    }
+
+    let cleanPrompt = subject
+      .replace(/\blebra\b/gi, "Labrador")
+      .replace(/\blabra\b/gi, "Labrador");
 
     // Optimize dimensions for fast AI generation without queue delays
-    // 768x768 produces crisp HD rendering on Pollinations in 3-5s
     let width = 512;
     let height = 512;
     if (size === "1024x1024") {
@@ -88,37 +136,52 @@ export const generateImage = async (req, res) => {
     let providerName = "";
 
     // -------------------------------------------------------------
-    // Tier 1: Direct Pollinations AI generation (Strictly prompt-based)
+    // Tier 1: Pollinations AI — style-aware model + enhanced prompt
     // -------------------------------------------------------------
     try {
-      const pollUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
-      console.log(`[Tier 1] Fetching AI image from Pollinations for: "${cleanPrompt}"`);
+      const pollUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=${width}&height=${height}&seed=${seed}&nologo=true&nofeed=true&model=${detectedModel}`;
+      console.log(`[Tier 1] model=${detectedModel} prompt="${cleanPrompt}"`);
       fs.appendFileSync('debug_image.txt', `[Tier 1] Fetching: ${pollUrl}\n`);
 
-      imageResult = await fetchImageBuffer(pollUrl, 14000);
-      if (imageResult) {
-        providerName = "Pollinations AI";
-      }
+      imageResult = await fetchImageBuffer(pollUrl, 20000);
+      if (imageResult) providerName = `Pollinations AI (${detectedModel})`;
     } catch (err) {
       console.warn("Pollinations Tier 1 error:", err.message);
       fs.appendFileSync('debug_image.txt', `[Tier 1] Error: ${err.message}\n`);
     }
 
     // -------------------------------------------------------------
-    // Tier 1B: Pollinations Fast 512x512 Retry (if HD timed out)
+    // Tier 1B: Pollinations — smaller size retry (same seed)
     // -------------------------------------------------------------
     if (!imageResult && width > 512) {
       try {
-        const pollFastUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=512&height=512&seed=${seed}&nologo=true`;
-        console.log(`[Tier 1B] Retrying Pollinations standard size for: "${cleanPrompt}"`);
+        const pollFastUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=512&height=512&seed=${seed}&nologo=true&nofeed=true&model=flux`;
+        console.log(`[Tier 1B] Retrying Pollinations 512x512 for: "${cleanPrompt}"`);
         fs.appendFileSync('debug_image.txt', `[Tier 1B] Retrying: ${pollFastUrl}\n`);
 
-        imageResult = await fetchImageBuffer(pollFastUrl, 10000);
-        if (imageResult) {
-          providerName = "Pollinations AI (Fast)";
-        }
+        imageResult = await fetchImageBuffer(pollFastUrl, 18000);
+        if (imageResult) providerName = "Pollinations AI (Fast)";
       } catch (err) {
         console.warn("Pollinations Tier 1B error:", err.message);
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Tier 1C: Pollinations — new fresh seed + default (turbo) model
+    //          (handles rate-limit from back-to-back requests)
+    // -------------------------------------------------------------
+    if (!imageResult) {
+      try {
+        await new Promise(r => setTimeout(r, 1200)); // brief pause for rate-limit recovery
+        const freshSeed = Math.floor(Math.random() * 1000000000);
+        const pollRetryUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=512&height=512&seed=${freshSeed}&nologo=true&nofeed=true`;
+        console.log(`[Tier 1C] Fresh-seed retry Pollinations for: "${cleanPrompt}"`);
+        fs.appendFileSync('debug_image.txt', `[Tier 1C] Fresh retry: ${pollRetryUrl}\n`);
+
+        imageResult = await fetchImageBuffer(pollRetryUrl, 20000);
+        if (imageResult) providerName = "Pollinations AI (Retry)";
+      } catch (err) {
+        console.warn("Pollinations Tier 1C error:", err.message);
       }
     }
 
@@ -197,7 +260,7 @@ export const generateImage = async (req, res) => {
 
     fs.appendFileSync('debug_image.txt', `Success (${providerName}). Length: ${imageResult.base64.length}\n`);
 
-    // Increment usage
+    // Increment usage and save once (combined with credit deduction above)
     if (user) {
       user.todayUsage = (user.todayUsage || 0) + 1;
       user.totalUsage = (user.totalUsage || 0) + 1;
