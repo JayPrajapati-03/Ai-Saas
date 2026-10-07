@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Loader2, ArrowRightLeft, Globe, Copy, Check } from "lucide-react";
+import { Loader2, ArrowRightLeft, Languages, Copy, Check } from "lucide-react";
 import { useUsage } from "../context/UsageContext";
 import { API_URL } from "../config/api";
 
@@ -112,7 +112,7 @@ export default function Translator() {
         style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(245,158,11,0.15)", border: "1px solid rgba(245,158,11,0.35)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Globe size={22} style={{ color: "#fcd34d" }} />
+            <Languages size={22} style={{ color: "#fcd34d" }} />
           </div>
           <div>
             <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 26, fontWeight: 700, letterSpacing: "-0.01em" }}>
