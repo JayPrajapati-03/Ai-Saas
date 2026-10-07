@@ -20,6 +20,38 @@ const menuItems = [
   { name: "Admin",           icon: Settings,   path: "/app/admin",             color: "#fda4af" },
 ];
 
+const notifIconMap = { Sparkles, Zap, ImageIcon, Bell };
+
+const defaultNotifications = [
+  {
+    id: 1,
+    title: "Welcome to AISaaS 🎉",
+    message: "Your AI suite is ready. Generate content, summaries, images, and translations.",
+    time: "Just now",
+    unread: true,
+    iconName: "Sparkles",
+    color: "#c4b5fd",
+  },
+  {
+    id: 2,
+    title: "Active Tier: Bronze ⚡",
+    message: "Unlimited text generation and summarization unlocked on your account.",
+    time: "15m ago",
+    unread: true,
+    iconName: "Zap",
+    color: "#6ee7b7",
+  },
+  {
+    id: 3,
+    title: "Image Styles Available 🎨",
+    message: "Try Anime, Cinematic, Pixel Art, and Photorealistic styles in Image Generator.",
+    time: "1h ago",
+    unread: false,
+    iconName: "ImageIcon",
+    color: "#f9a8d4",
+  },
+];
+
 export default function DashboardLayout() {
   const {
     plan = "Basic",
@@ -30,35 +62,21 @@ export default function DashboardLayout() {
   const [open, setOpen] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: "Welcome to AISaaS 🎉",
-      message: "Your AI suite is ready. Generate content, summaries, images, and translations.",
-      time: "Just now",
-      unread: true,
-      icon: Sparkles,
-      color: "#c4b5fd",
-    },
-    {
-      id: 2,
-      title: "Active Tier: Bronze ⚡",
-      message: "Unlimited text generation and summarization unlocked on your account.",
-      time: "15m ago",
-      unread: true,
-      icon: Zap,
-      color: "#6ee7b7",
-    },
-    {
-      id: 3,
-      title: "Image Styles Available 🎨",
-      message: "Try Anime, Cinematic, Pixel Art, and Photorealistic styles in Image Generator.",
-      time: "1h ago",
-      unread: false,
-      icon: ImageIcon,
-      color: "#f9a8d4",
-    },
-  ]);
+  const [notifications, setNotifications] = useState(() => {
+    try {
+      const saved = localStorage.getItem("aisaas_notifications");
+      if (saved !== null) {
+        return JSON.parse(saved);
+      }
+    } catch { /* noop */ }
+    return defaultNotifications;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("aisaas_notifications", JSON.stringify(notifications));
+    } catch { /* noop */ }
+  }, [notifications]);
 
   const unreadCount = notifications.filter(n => n.unread).length;
 
@@ -545,7 +563,7 @@ export default function DashboardLayout() {
                         </div>
                       ) : (
                         notifications.map((n) => {
-                          const IconComponent = n.icon || Bell;
+                          const IconComponent = notifIconMap[n.iconName] || n.icon || Bell;
                           return (
                             <div
                               key={n.id}
