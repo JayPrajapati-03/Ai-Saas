@@ -211,11 +211,13 @@ export default function DashboardLayout() {
           </AnimatePresence>
           <button
             onClick={() => setOpen(!open)}
+            title={open ? "Collapse sidebar" : "Expand sidebar"}
+            aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
             style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--text-secondary)", transition: "all 0.2s", flexShrink: 0 }}
             onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "white"; }}
             onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
           >
-            {open ? <X size={16} /> : <Menu size={16} />}
+            <Menu size={16} />
           </button>
         </div>
 
