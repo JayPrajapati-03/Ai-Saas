@@ -81,6 +81,14 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--violet);
 }
 
+.sidebar-nav-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sidebar-nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
 /* ============================================================
    ANIMATED MESH BACKGROUND
    ============================================================ */

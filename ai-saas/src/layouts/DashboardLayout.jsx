@@ -135,7 +135,16 @@ export default function DashboardLayout() {
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "var(--bg-deep)", fontFamily: "var(--font-body)", position: "relative" }}>
+    <div style={{
+      display: "flex",
+      height: "100vh",
+      maxHeight: "100vh",
+      width: "100%",
+      overflow: "hidden",
+      background: "var(--bg-deep)",
+      fontFamily: "var(--font-body)",
+      position: "relative",
+    }}>
       {/* Mesh bg */}
       <div className="mesh-bg" />
 
@@ -146,20 +155,28 @@ export default function DashboardLayout() {
         animate={{ width: open ? 240 : 72 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
         style={{
-          flexShrink: 0, display: "flex", flexDirection: "column",
+          height: "100vh",
+          maxHeight: "100vh",
+          flexShrink: 0,
+          display: "flex",
+          flexDirection: "column",
           background: "rgba(255,255,255,0.03)",
           backdropFilter: "blur(24px)",
           borderRight: "1px solid rgba(255,255,255,0.07)",
-          padding: "0 0 24px",
-          position: "relative", zIndex: 20, overflow: "hidden",
+          padding: 0,
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
+          overflow: "hidden",
         }}
       >
         {/* Sidebar Header */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: open ? "space-between" : "center",
-          padding: open ? "20px 20px 16px" : "20px 12px 16px",
+          padding: open ? "18px 18px 14px" : "18px 12px 14px",
           borderBottom: "1px solid rgba(255,255,255,0.06)",
-          marginBottom: 8,
+          marginBottom: 6,
+          flexShrink: 0,
         }}>
           <AnimatePresence>
             {open && (
@@ -185,7 +202,19 @@ export default function DashboardLayout() {
         </div>
 
         {/* Navigation */}
-        <nav style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4, padding: "8px 12px" }}>
+        <nav
+          className="sidebar-nav-scroll"
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            overflowX: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            gap: 3,
+            padding: "6px 10px",
+          }}
+        >
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -198,7 +227,7 @@ export default function DashboardLayout() {
                   display: "flex", alignItems: "center",
                   gap: open ? 12 : 0,
                   justifyContent: open ? "flex-start" : "center",
-                  padding: open ? "10px 14px" : "10px",
+                  padding: open ? "9px 12px" : "9px",
                   borderRadius: 10,
                   textDecoration: "none",
                   position: "relative",
@@ -246,55 +275,111 @@ export default function DashboardLayout() {
 
         {/* Sidebar Subscription Widget */}
         <AnimatePresence>
-          {open && (
+          {open ? (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.2 }}
               style={{
-                margin: "12px 12px 0",
-                padding: "14px",
+                flexShrink: 0,
+                margin: "8px 10px 12px",
+                padding: "12px 14px",
                 borderRadius: 14,
-                background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.08)",
+                background: "linear-gradient(135deg, rgba(124,58,237,0.12), rgba(6,182,212,0.06))",
+                border: "1px solid rgba(124,58,237,0.25)",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.05em" }}>PLAN</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase" }}>PLAN</span>
                 <span
                   style={{
                     fontSize: 10,
                     fontWeight: 700,
                     padding: "2px 8px",
                     borderRadius: 999,
-                    background: plan === "Ultimate" ? "rgba(245,158,11,0.18)" : plan === "Pro" ? "rgba(124,58,237,0.2)" : "rgba(16,185,129,0.18)",
+                    background: plan === "Ultimate" ? "rgba(245,158,11,0.2)" : plan === "Pro" ? "rgba(124,58,237,0.25)" : "rgba(16,185,129,0.2)",
                     color: plan === "Ultimate" ? "#fcd34d" : plan === "Pro" ? "#c4b5fd" : "#6ee7b7",
-                    border: `1px solid ${plan === "Ultimate" ? "rgba(245,158,11,0.35)" : plan === "Pro" ? "rgba(124,58,237,0.35)" : "rgba(16,185,129,0.3)"}`,
+                    border: `1px solid ${plan === "Ultimate" ? "rgba(245,158,11,0.4)" : plan === "Pro" ? "rgba(124,58,237,0.4)" : "rgba(16,185,129,0.35)"}`,
                   }}
                 >
                   {plan}
                 </span>
               </div>
-              <div style={{ fontSize: 12, color: "white", fontWeight: 600, marginBottom: 8 }}>
-                {credits}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "white", fontWeight: 600, marginBottom: 10 }}>
+                <Zap size={13} color="#c4b5fd" style={{ flexShrink: 0 }} />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{credits}</span>
               </div>
               <Link
                 to="/app/billing"
                 style={{
-                  display: "block",
-                  textAlign: "center",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
                   padding: "7px 0",
                   borderRadius: 8,
-                  background: "rgba(124,58,237,0.15)",
-                  border: "1px solid rgba(124,58,237,0.35)",
-                  color: "#c4b5fd",
+                  background: "linear-gradient(135deg, rgba(124,58,237,0.3), rgba(6,182,212,0.2))",
+                  border: "1px solid rgba(124,58,237,0.45)",
+                  color: "#ffffff",
                   textDecoration: "none",
                   fontSize: 11,
                   fontWeight: 600,
-                  transition: "background 0.2s",
+                  transition: "all 0.2s ease",
+                  boxShadow: "0 2px 8px rgba(124,58,237,0.25)",
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = "linear-gradient(135deg, rgba(124,58,237,0.55), rgba(6,182,212,0.4))";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(124,58,237,0.45)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = "linear-gradient(135deg, rgba(124,58,237,0.3), rgba(6,182,212,0.2))";
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(124,58,237,0.25)";
                 }}
               >
-                {plan === "Basic" ? "Upgrade Subscription" : "Manage Billing"}
+                <Sparkles size={12} color="#c4b5fd" />
+                <span>{plan === "Basic" ? "Upgrade Subscription" : "Manage Billing"}</span>
+              </Link>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{
+                flexShrink: 0,
+                margin: "8px 10px 12px",
+                display: "flex",
+                justifyContent: "center",
+              }}
+            >
+              <Link
+                to="/app/billing"
+                title={`${plan} Plan • ${credits}`}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  background: "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(6,182,212,0.1))",
+                  border: "1px solid rgba(124,58,237,0.35)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#c4b5fd",
+                  textDecoration: "none",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = "linear-gradient(135deg, rgba(124,58,237,0.35), rgba(6,182,212,0.2))";
+                  e.currentTarget.style.transform = "scale(1.05)";
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(6,182,212,0.1))";
+                  e.currentTarget.style.transform = "scale(1)";
+                }}
+              >
+                <Zap size={18} color="#c4b5fd" />
               </Link>
             </motion.div>
           )}
@@ -304,10 +389,21 @@ export default function DashboardLayout() {
       {/* ═══════════════════════════════════
           MAIN CONTENT
       ═══════════════════════════════════ */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative", zIndex: 1 }}>
+      <div style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
+        maxHeight: "100vh",
+        minWidth: 0,
+        overflow: "hidden",
+        position: "relative",
+        zIndex: 1,
+      }}>
 
         {/* TOP NAVBAR */}
         <div style={{
+          flexShrink: 0,
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "16px 28px",
           background: "rgba(255,255,255,0.02)",
@@ -315,6 +411,7 @@ export default function DashboardLayout() {
           borderBottom: "1px solid rgba(255,255,255,0.07)",
           position: "sticky", top: 0, zIndex: 10,
         }}>
+
           {/* Page title derived from path */}
           <div>
             <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, color: "white" }}>
@@ -609,7 +706,7 @@ export default function DashboardLayout() {
         </div>
 
         {/* PAGE CONTENT */}
-        <div className="dashboard-content" style={{ flex: 1, padding: "28px 32px", overflowY: "auto" }}>
+        <div className="dashboard-content" style={{ flex: 1, padding: "28px 32px", overflowY: "auto", minHeight: 0 }}>
           <Outlet />
         </div>
       </div>
