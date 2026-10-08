@@ -384,6 +384,7 @@ export default function DashboardHome() {
           <div style={{ marginTop: 8 }}>
             <Link
               to="/app/billing"
+              state={{ from: "/app" }}
               style={{
                 fontSize: 12,
                 color: "var(--text-muted)",
@@ -648,6 +649,7 @@ export default function DashboardHome() {
 
         <Link
           to="/app/billing"
+          state={{ from: "/app" }}
           style={{
             fontSize: 13,
             color: currentPlanConfig.color,

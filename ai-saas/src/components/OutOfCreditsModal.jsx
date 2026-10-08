@@ -11,7 +11,7 @@ export default function OutOfCreditsModal({ isOpen, onClose }) {
 
   const handleGoToBilling = () => {
     onClose?.();
-    navigate("/app/billing");
+    navigate("/app/billing", { state: { from: window.location.pathname } });
   };
 
   return (

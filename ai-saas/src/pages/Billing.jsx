@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check,
@@ -8,7 +9,6 @@ import {
   Shield,
   Star,
   Crown,
-  Lock,
   X,
   Sparkles,
   ShieldCheck,
@@ -16,8 +16,11 @@ import {
   Receipt,
   ArrowRight,
   RefreshCw,
+  AlertTriangle,
+  ExternalLink,
 } from "lucide-react";
 import { useUsage } from "../context/UsageContext";
+import RazorpayModal from "../components/RazorpayModal";
 
 const plans = [
   {
@@ -88,90 +91,102 @@ export default function Billing() {
     switchToBasic,
   } = useUsage();
 
+  const location = useLocation();
+  const navigate = useNavigate();
+  const returnPath = location.state?.from || "/app";
+
   // Payment checkout modal state
   const [checkoutPlan, setCheckoutPlan] = useState(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processStep, setProcessStep] = useState("");
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [successBanner, setSuccessBanner] = useState("");
-
-  // Payment form state
-  const [cardName, setCardName] = useState(() => {
-    try {
-      const u = JSON.parse(localStorage.getItem("user") || "{}");
-      return u.name || "Alex Morgan";
-    } catch {
-      return "Alex Morgan";
-    }
-  });
-  const [cardNumber, setCardNumber] = useState("4242 •••• •••• 4242");
-  const [cardExpiry, setCardExpiry] = useState("12/28");
-  const [cardCvc, setCardCvc] = useState("888");
-  const [cardZip, setCardZip] = useState("94105");
+  const [razorpayError, setRazorpayError] = useState(null); // { message, plan }
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Downgrade confirmation modal
   const [showDowngradeModal, setShowDowngradeModal] = useState(false);
 
-  // Open checkout for a plan
-  const handleSelectPlan = (plan) => {
+  // Handle direct Razorpay Hosted Page redirect via Payment Links
+  const handleRedirectToHostedPage = async (plan) => {
+    try {
+      setIsRedirecting(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:5000/api/billing/create-payment-link", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ plan: plan.name, returnPath }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.paymentLink) {
+        window.location.href = data.paymentLink;
+      } else {
+        setRazorpayError({
+          message: data.message || "Failed to create Razorpay payment link.",
+          plan,
+        });
+      }
+    } catch (err) {
+      setRazorpayError({
+        message: err.message || "Network error connecting to payment server.",
+        plan,
+      });
+    } finally {
+      setIsRedirecting(false);
+    }
+  };
+
+  // Handle successful Razorpay payment
+  const handleRazorpaySuccess = async (plan, paymentDetails) => {
+    await upgradePlan(plan.name, {
+      paymentMethod: paymentDetails.paymentMethod,
+      amount: paymentDetails.amount,
+      transactionId: paymentDetails.paymentId,
+    });
+
+    setSuccessBanner(
+      `🎉 Payment Successful! Your ${plan.name} Plan is now active with ${plan.credits}. Returning you back...`
+    );
+
+    setTimeout(() => {
+      navigate(returnPath || "/app", { replace: true });
+    }, 1200);
+  };
+
+  // Open checkout for a plan (Direct Razorpay Hosted Checkout — 100% clean console, official redirect)
+  const handleSelectPlan = async (plan) => {
     if (plan.name === activePlan && (activePlan === "Basic" || rawCredits > 0)) return;
 
     if (plan.name === "Basic") {
-      // Switching back to Basic: free, no payment required
       setShowDowngradeModal(true);
       return;
     }
 
-    // Paid plan: open secure payment checkout modal
-    setCheckoutPlan(plan);
-    setPaymentSuccess(false);
-    setIsProcessing(false);
-    setProcessStep("");
+    await handleRedirectToHostedPage(plan);
   };
 
-  // Quick fill test card credentials
-  const handleQuickFill = () => {
-    setCardName("Test User");
-    setCardNumber("4242 4242 4242 4242");
-    setCardExpiry("08/29");
-    setCardCvc("321");
-    setCardZip("90210");
-  };
+  // Handle Razorpay Payment Link callback (redirect back with ?payment=razorpay_success&plan=Pro)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const paymentStatus = params.get("payment");
+    const paidPlan = params.get("plan");
+    const fromPath = params.get("from");
 
-  // Process checkout payment simulation
-  const handleCompletePayment = async (e) => {
-    e.preventDefault();
-    if (!checkoutPlan || isProcessing) return;
+    if (paymentStatus === "razorpay_success" && paidPlan) {
+      // Clear URL query parameters immediately to prevent duplicate execution
+      navigate("/app/billing", { replace: true, state: { from: fromPath || "/app" } });
 
-    setIsProcessing(true);
-    setProcessStep("Encrypting payment details...");
-
-    await new Promise((r) => setTimeout(r, 600));
-    setProcessStep("Authorizing with payment network...");
-
-    await new Promise((r) => setTimeout(r, 700));
-    setProcessStep("Payment verified! Activating subscription...");
-
-    // Execute plan upgrade in context & backend
-    await upgradePlan(checkoutPlan.name, {
-      cardNumber: cardNumber.replace(/\s+/g, ""),
-      cardName,
-    });
-
-    await new Promise((r) => setTimeout(r, 500));
-    setPaymentSuccess(true);
-    setProcessStep("Payment Successful!");
-
-    setTimeout(() => {
-      setCheckoutPlan(null);
-      setIsProcessing(false);
-      setPaymentSuccess(false);
-      setSuccessBanner(
-        `🎉 Congratulations! Your ${checkoutPlan.name} Plan is now active with ${checkoutPlan.credits}.`
-      );
-      setTimeout(() => setSuccessBanner(""), 8000);
-    }, 1200);
-  };
+      const matchedPlan = plans.find((p) => p.name === paidPlan);
+      if (matchedPlan) {
+        handleRazorpaySuccess(matchedPlan, {
+          paymentId: `rzp_${Date.now()}`,
+          paymentMethod: "Razorpay Official Checkout",
+          amount: matchedPlan.price,
+        });
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Confirm downgrade back to Basic
   const handleConfirmDowngrade = async () => {
@@ -653,14 +668,14 @@ export default function Billing() {
                 <button
                   type="button"
                   onClick={() => handleSelectPlan(plan)}
-                  disabled={isActive && (isBasic || rawCredits > 0)}
+                  disabled={(isActive && (isBasic || rawCredits > 0)) || isRedirecting}
                   style={{
                     width: "100%",
                     padding: "12px",
                     borderRadius: 12,
                     fontWeight: 700,
                     fontSize: 14,
-                    cursor: isActive && (isBasic || rawCredits > 0) ? "default" : "pointer",
+                    cursor: (isActive && (isBasic || rawCredits > 0)) || isRedirecting ? "default" : "pointer",
                     transition: "all 0.2s",
                     border: "none",
                     display: "flex",
@@ -886,436 +901,294 @@ export default function Billing() {
       </div>
 
       {/* ═════════════════════════════════════════════
-          CHECKOUT PAYMENT MODAL
+          RAZORPAY REDIRECTING OVERLAY
       ═════════════════════════════════════════════ */}
       <AnimatePresence>
-        {checkoutPlan && (
+        {isRedirecting && (
           <div
             style={{
               position: "fixed",
               inset: 0,
-              zIndex: 999,
+              zIndex: 99999,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               padding: 16,
-              background: "rgba(0, 0, 0, 0.75)",
-              backdropFilter: "blur(12px)",
+              background: "rgba(0, 0, 0, 0.82)",
+              backdropFilter: "blur(14px)",
             }}
-            onClick={() => !isProcessing && setCheckoutPlan(null)}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.94, y: 20 }}
+              initial={{ opacity: 0, scale: 0.92, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 20 }}
-              transition={{ duration: 0.2 }}
+              exit={{ opacity: 0, scale: 0.92, y: 10 }}
+              style={{
+                textAlign: "center",
+                padding: "36px 32px",
+                borderRadius: 22,
+                background: "#0c1222",
+                border: "1px solid rgba(99, 102, 241, 0.35)",
+                boxShadow: "0 25px 60px rgba(0,0,0,0.9)",
+                maxWidth: 400,
+                width: "100%",
+              }}
+            >
+              <div
+                style={{
+                  width: 58,
+                  height: 58,
+                  borderRadius: 16,
+                  background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 18px",
+                  boxShadow: "0 10px 25px rgba(99, 102, 241, 0.4)",
+                }}
+              >
+                <RefreshCw
+                  size={26}
+                  color="white"
+                  style={{ animation: "spin 1s linear infinite" }}
+                />
+              </div>
+              <h3
+                style={{
+                  fontFamily: "var(--font-heading)",
+                  fontSize: 20,
+                  fontWeight: 700,
+                  color: "white",
+                  marginBottom: 8,
+                }}
+              >
+                Connecting to Razorpay
+              </h3>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "var(--text-secondary)",
+                  lineHeight: 1.5,
+                  margin: 0,
+                }}
+              >
+                Redirecting you to the official secure payment gateway...
+              </p>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ═════════════════════════════════════════════
+          RAZORPAY AUTHENTICATION / ERROR MODAL
+      ═════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {razorpayError && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 9999,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
+              background: "rgba(0, 0, 0, 0.78)",
+              backdropFilter: "blur(12px)",
+            }}
+            onClick={() => setRazorpayError(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 10 }}
               onClick={(e) => e.stopPropagation()}
               style={{
                 width: "100%",
                 maxWidth: 480,
-                borderRadius: 22,
+                borderRadius: 20,
                 background: "#0c1222",
-                border: "1px solid rgba(124,58,237,0.4)",
-                boxShadow:
-                  "0 25px 60px rgba(0,0,0,0.8), 0 0 50px rgba(124,58,237,0.2)",
-                overflow: "hidden",
-                position: "relative",
+                border: "1px solid rgba(239, 68, 68, 0.4)",
+                padding: "26px",
+                boxShadow: "0 25px 60px rgba(0,0,0,0.85)",
               }}
             >
-              {/* Modal Top Bar */}
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  padding: "18px 24px",
-                  borderBottom: "1px solid rgba(255,255,255,0.08)",
-                  background: "rgba(255,255,255,0.02)",
+                  marginBottom: 16,
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      background: "rgba(124,58,237,0.2)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#c4b5fd",
-                    }}
-                  >
-                    <Lock size={16} />
-                  </div>
-                  <div>
-                    <h3
-                      style={{
-                        fontFamily: "var(--font-heading)",
-                        fontSize: 16,
-                        fontWeight: 700,
-                        color: "white",
-                      }}
-                    >
-                      Secure Payment Checkout
-                    </h3>
-                    <p style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                      256-Bit SSL Encrypted Transaction
-                    </p>
-                  </div>
-                </div>
-
-                {!isProcessing && (
-                  <button
-                    onClick={() => setCheckoutPlan(null)}
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: 8,
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      color: "var(--text-muted)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <X size={16} />
-                  </button>
-                )}
-              </div>
-
-              {/* Order Summary Box */}
-              <div style={{ padding: "20px 24px 0" }}>
                 <div
                   style={{
-                    padding: "16px 18px",
-                    borderRadius: 14,
-                    background:
-                      checkoutPlan.color === "#c4b5fd"
-                        ? "rgba(124,58,237,0.15)"
-                        : "rgba(245,158,11,0.12)",
-                    border: `1px solid ${
-                      checkoutPlan.color === "#c4b5fd"
-                        ? "rgba(124,58,237,0.35)"
-                        : "rgba(245,158,11,0.35)"
-                    }`,
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    background: "rgba(239, 68, 68, 0.15)",
+                    border: "1px solid rgba(239, 68, 68, 0.3)",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "space-between",
+                    justifyContent: "center",
+                    color: "#f87171",
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div
-                      style={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: 10,
-                        background: checkoutPlan.bg,
-                        border: `1px solid ${checkoutPlan.border}`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: checkoutPlan.color,
-                      }}
-                    >
-                      {checkoutPlan.icon}
-                    </div>
-                    <div>
-                      <div
-                        style={{
-                          fontFamily: "var(--font-heading)",
-                          fontSize: 16,
-                          fontWeight: 700,
-                          color: "white",
-                        }}
-                      >
-                        {checkoutPlan.name} Plan
-                      </div>
-                      <div style={{ fontSize: 12, color: checkoutPlan.color }}>
-                        {checkoutPlan.credits}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ textAlign: "right" }}>
-                    <div
-                      style={{
-                        fontFamily: "var(--font-heading)",
-                        fontSize: 22,
-                        fontWeight: 800,
-                        color: "white",
-                      }}
-                    >
-                      {checkoutPlan.price}
-                    </div>
-                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                      Billed monthly
-                    </span>
-                  </div>
+                  <AlertTriangle size={22} />
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setRazorpayError(null)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "rgba(255,255,255,0.4)",
+                    cursor: "pointer",
+                    padding: 4,
+                  }}
+                >
+                  <X size={20} />
+                </button>
               </div>
 
-              {/* Card Form */}
-              <form onSubmit={handleCompletePayment} style={{ padding: "20px 24px 24px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.04em" }}>
-                    PAYMENT DETAILS
-                  </span>
+              <h3
+                style={{
+                  fontFamily: "var(--font-heading)",
+                  fontSize: 18,
+                  fontWeight: 700,
+                  color: "white",
+                  marginBottom: 8,
+                }}
+              >
+                Razorpay Authentication Issue
+              </h3>
+
+              <div
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 10,
+                  background: "rgba(239, 68, 68, 0.1)",
+                  border: "1px solid rgba(239, 68, 68, 0.25)",
+                  color: "#fca5a5",
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  marginBottom: 16,
+                }}
+              >
+                <strong>Error:</strong> {razorpayError.message}
+              </div>
+
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--text-secondary)",
+                  lineHeight: 1.6,
+                  marginBottom: 20,
+                  background: "rgba(255,255,255,0.03)",
+                  padding: 14,
+                  borderRadius: 10,
+                  border: "1px solid rgba(255,255,255,0.06)",
+                }}
+              >
+                <p style={{ fontWeight: 600, color: "white", marginBottom: 6 }}>
+                  Why this happens (HTTP 401):
+                </p>
+                <ul style={{ paddingLeft: 18, margin: 0 }}>
+                  <li>Razorpay Key Secret was regenerated or does not match this Key ID.</li>
+                  <li>The test account or key pair is deactivated in Razorpay Dashboard.</li>
+                </ul>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {razorpayError.plan && (
                   <button
                     type="button"
-                    onClick={handleQuickFill}
-                    style={{
-                      background: "rgba(124,58,237,0.15)",
-                      border: "1px solid rgba(124,58,237,0.3)",
-                      color: "#c4b5fd",
-                      fontSize: 11,
-                      fontWeight: 600,
-                      padding: "4px 10px",
-                      borderRadius: 6,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
+                    onClick={() => {
+                      const p = razorpayError.plan;
+                      setRazorpayError(null);
+                      setCheckoutPlan(p);
                     }}
-                  >
-                    <Sparkles size={12} /> ⚡ Quick Fill Test Card
-                  </button>
-                </div>
-
-                {/* Cardholder Name */}
-                <div style={{ marginBottom: 14 }}>
-                  <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
-                    Cardholder Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={cardName}
-                    onChange={(e) => setCardName(e.target.value)}
-                    placeholder="Full Name"
                     style={{
                       width: "100%",
-                      padding: "10px 14px",
+                      padding: "12px",
                       borderRadius: 10,
-                      background: "rgba(255,255,255,0.05)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      color: "white",
-                      fontSize: 13,
-                      outline: "none",
-                    }}
-                  />
-                </div>
-
-                {/* Card Number */}
-                <div style={{ marginBottom: 14 }}>
-                  <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
-                    Card Number
-                  </label>
-                  <div style={{ position: "relative" }}>
-                    <input
-                      type="text"
-                      required
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
-                      placeholder="4242 4242 4242 4242"
-                      maxLength={19}
-                      style={{
-                        width: "100%",
-                        padding: "10px 42px 10px 14px",
-                        borderRadius: 10,
-                        background: "rgba(255,255,255,0.05)",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        color: "white",
-                        fontSize: 13,
-                        fontFamily: "monospace",
-                        letterSpacing: "0.08em",
-                        outline: "none",
-                      }}
-                    />
-                    <CreditCard
-                      size={18}
-                      style={{
-                        position: "absolute",
-                        right: 14,
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        color: "#c4b5fd",
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Expiry, CVC, Zip */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
-                  <div>
-                    <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
-                      Expires (MM/YY)
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={cardExpiry}
-                      onChange={(e) => setCardExpiry(e.target.value)}
-                      placeholder="12/28"
-                      maxLength={5}
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        borderRadius: 10,
-                        background: "rgba(255,255,255,0.05)",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        color: "white",
-                        fontSize: 13,
-                        textAlign: "center",
-                        outline: "none",
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
-                      CVC / CVV
-                    </label>
-                    <input
-                      type="password"
-                      required
-                      value={cardCvc}
-                      onChange={(e) => setCardCvc(e.target.value)}
-                      placeholder="888"
-                      maxLength={4}
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        borderRadius: 10,
-                        background: "rgba(255,255,255,0.05)",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        color: "white",
-                        fontSize: 13,
-                        textAlign: "center",
-                        outline: "none",
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 11, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
-                      Postal Code
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={cardZip}
-                      onChange={(e) => setCardZip(e.target.value)}
-                      placeholder="94105"
-                      maxLength={6}
-                      style={{
-                        width: "100%",
-                        padding: "10px 12px",
-                        borderRadius: 10,
-                        background: "rgba(255,255,255,0.05)",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        color: "white",
-                        fontSize: 13,
-                        textAlign: "center",
-                        outline: "none",
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Processing State or Submit Button */}
-                {isProcessing ? (
-                  <div
-                    style={{
-                      width: "100%",
-                      padding: "14px",
-                      borderRadius: 12,
-                      background: paymentSuccess
-                        ? "rgba(16,185,129,0.2)"
-                        : "rgba(124,58,237,0.2)",
-                      border: `1px solid ${
-                        paymentSuccess
-                          ? "rgba(16,185,129,0.5)"
-                          : "rgba(124,58,237,0.5)"
-                      }`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 10,
-                      color: paymentSuccess ? "#6ee7b7" : "#c4b5fd",
-                      fontWeight: 600,
-                      fontSize: 14,
-                    }}
-                  >
-                    {paymentSuccess ? (
-                      <>
-                        <CheckCircle2 size={18} />
-                        <span>{processStep}</span>
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw size={18} className="animate-spin" />
-                        <span>{processStep}</span>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <button
-                    type="submit"
-                    style={{
-                      width: "100%",
-                      padding: "14px",
-                      borderRadius: 12,
-                      fontWeight: 700,
-                      fontSize: 15,
-                      color: "white",
-                      background: "linear-gradient(135deg,#7c3aed,#06b6d4)",
+                      background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
                       border: "none",
+                      color: "white",
+                      fontWeight: 600,
+                      fontSize: 13,
                       cursor: "pointer",
-                      boxShadow: "0 4px 20px rgba(124,58,237,0.35)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       gap: 8,
-                      transition: "transform 0.15s, opacity 0.15s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.opacity = "0.92";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.opacity = "1";
                     }}
                   >
-                    <span>Pay {checkoutPlan.price} & Activate {checkoutPlan.name}</span>
-                    <ArrowRight size={16} />
+                    <Sparkles size={16} />
+                    Open Sandbox Demo Checkout (Test Now)
                   </button>
                 )}
 
-                {/* Trust Badges */}
-                <div
+                {razorpayError.plan && (
+                  <button
+                    type="button"
+                    disabled={isRedirecting}
+                    onClick={() => handleRedirectToHostedPage(razorpayError.plan)}
+                    style={{
+                      width: "100%",
+                      padding: "12px",
+                      borderRadius: 10,
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      color: "white",
+                      fontWeight: 600,
+                      fontSize: 13,
+                      cursor: isRedirecting ? "not-allowed" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <ExternalLink size={16} />
+                    {isRedirecting ? "Generating link..." : "Try Razorpay Hosted Page (Redirect)"}
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setRazorpayError(null)}
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 16,
-                    marginTop: 16,
-                    fontSize: 11,
+                    width: "100%",
+                    padding: "10px",
+                    borderRadius: 10,
+                    background: "transparent",
+                    border: "none",
                     color: "var(--text-muted)",
+                    fontSize: 13,
+                    cursor: "pointer",
                   }}
                 >
-                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <ShieldCheck size={13} color="#6ee7b7" /> Instant Activation
-                  </span>
-                  <span>•</span>
-                  <span>Switch back to Basic anytime</span>
-                  <span>•</span>
-                  <span>No lock-in</span>
-                </div>
-              </form>
+                  Dismiss
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+
+      {/* ═════════════════════════════════════════════
+          RAZORPAY CHECKOUT MODAL
+      ═════════════════════════════════════════════ */}
+      <RazorpayModal
+        isOpen={Boolean(checkoutPlan)}
+        plan={checkoutPlan}
+        onClose={() => setCheckoutPlan(null)}
+        onSuccess={(paymentDetails) =>
+          handleRazorpaySuccess(checkoutPlan, paymentDetails)
+        }
+        returnPath={returnPath}
+      />
+
 
       {/* ═════════════════════════════════════════════
           DOWNGRADE TO BASIC CONFIRMATION MODAL

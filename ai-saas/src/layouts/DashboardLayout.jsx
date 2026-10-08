@@ -188,6 +188,7 @@ export default function DashboardLayout() {
               <Link
                 key={item.path}
                 to={item.path}
+                state={item.path === "/app/billing" ? { from: location.pathname } : undefined}
                 title={!open ? item.name : undefined}
                 style={{
                   display: "flex", alignItems: "center",
@@ -279,6 +280,7 @@ export default function DashboardLayout() {
               </div>
               <Link
                 to="/app/billing"
+                state={{ from: location.pathname }}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -322,6 +324,7 @@ export default function DashboardLayout() {
             >
               <Link
                 to="/app/billing"
+                state={{ from: location.pathname }}
                 title={`${plan} Plan • ${credits}`}
                 style={{
                   width: 40,
