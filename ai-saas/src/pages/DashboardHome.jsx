@@ -297,35 +297,6 @@ export default function DashboardHome() {
             >
               Start Creating <ArrowRight size={16} />
             </Link>
-
-            <Link
-              to="/app/billing"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "10px 18px",
-                borderRadius: 12,
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                color: "white",
-                textDecoration: "none",
-                fontSize: 13,
-                fontWeight: 600,
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(255,255,255,0.12)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(255,255,255,0.06)";
-              }}
-            >
-              <CreditCard size={15} style={{ color: currentPlanConfig.color }} />
-              <span>
-                {plan === "Basic" ? "Upgrade Subscription" : "Manage Billing & Plan"}
-              </span>
-            </Link>
           </div>
         </div>
       </motion.div>
