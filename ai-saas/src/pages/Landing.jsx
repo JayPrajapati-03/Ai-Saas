@@ -1,12 +1,128 @@
-import { motion, useInView } from "framer-motion";
-import { useRef, useEffect, useState } from "react";
+import { motion, useInView, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
+import { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import {
   ArrowRight, Sparkles, Zap, Shield, Brain, Globe, FileText,
   Star, CheckCircle2, Users, TrendingUp, ChevronRight, Cpu,
+  Play, MousePointerClick, Layers, Command, ArrowUpRight,
+  ChevronDown, Menu, X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-/* ── Animated counter ── */
+/* ═══════════════════════════════════════════════════════════════
+   INTERACTIVE PARTICLE CANVAS
+   ═══════════════════════════════════════════════════════════════ */
+function ParticleField() {
+  const canvasRef = useRef(null);
+  const mouseRef = useRef({ x: 0, y: 0 });
+  const particlesRef = useRef([]);
+  const animRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    // Create particles
+    const count = Math.min(80, Math.floor(window.innerWidth / 18));
+    particlesRef.current = Array.from({ length: count }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      r: Math.random() * 1.8 + 0.5,
+      opacity: Math.random() * 0.5 + 0.15,
+    }));
+
+    const handleMouse = (e) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener("mousemove", handleMouse);
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const mx = mouseRef.current.x;
+      const my = mouseRef.current.y;
+      const particles = particlesRef.current;
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        // Mouse repulsion
+        const dx = p.x - mx;
+        const dy = p.y - my;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 150) {
+          const force = (150 - dist) / 150;
+          p.vx += (dx / dist) * force * 0.3;
+          p.vy += (dy / dist) * force * 0.3;
+        }
+
+        p.vx *= 0.98;
+        p.vy *= 0.98;
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // Wrap around
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(139, 92, 246, ${p.opacity})`;
+        ctx.fill();
+
+        // Connect nearby particles
+        for (let j = i + 1; j < particles.length; j++) {
+          const q = particles[j];
+          const ddx = p.x - q.x;
+          const ddy = p.y - q.y;
+          const d = Math.sqrt(ddx * ddx + ddy * ddy);
+          if (d < 120) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(q.x, q.y);
+            ctx.strokeStyle = `rgba(139, 92, 246, ${0.08 * (1 - d / 120)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      }
+      animRef.current = requestAnimationFrame(draw);
+    };
+    draw();
+
+    return () => {
+      window.removeEventListener("resize", resize);
+      window.removeEventListener("mousemove", handleMouse);
+      cancelAnimationFrame(animRef.current);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 0,
+        pointerEvents: "none",
+        opacity: 0.7,
+      }}
+    />
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATED COUNTER
+   ═══════════════════════════════════════════════════════════════ */
 function Counter({ to, suffix = "" }) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true });
@@ -15,112 +131,210 @@ function Counter({ to, suffix = "" }) {
   useEffect(() => {
     if (!inView) return;
     let start = 0;
-    const end = to;
-    const step = Math.ceil(end / 60);
+    const step = Math.ceil(to / 50);
     const timer = setInterval(() => {
       start += step;
-      if (start >= end) { setCount(end); clearInterval(timer); }
+      if (start >= to) { setCount(to); clearInterval(timer); }
       else setCount(start);
-    }, 18);
+    }, 20);
     return () => clearInterval(timer);
   }, [inView, to]);
 
   return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
 }
 
-/* ── Feature card ── */
-function FeatureCard({ icon, title, desc, color, delay }) {
-  const colorMap = {
-    violet: { bg: "rgba(124,58,237,0.1)", border: "rgba(124,58,237,0.3)", iconBg: "rgba(124,58,237,0.2)", text: "#c4b5fd" },
-    cyan:   { bg: "rgba(6,182,212,0.1)",  border: "rgba(6,182,212,0.3)",  iconBg: "rgba(6,182,212,0.2)",  text: "#67e8f9" },
-    pink:   { bg: "rgba(236,72,153,0.1)", border: "rgba(236,72,153,0.3)", iconBg: "rgba(236,72,153,0.2)", text: "#f9a8d4" },
-    amber:  { bg: "rgba(245,158,11,0.1)", border: "rgba(245,158,11,0.3)", iconBg: "rgba(245,158,11,0.2)", text: "#fcd34d" },
-    emerald:{ bg: "rgba(16,185,129,0.1)", border: "rgba(16,185,129,0.3)", iconBg: "rgba(16,185,129,0.2)", text: "#6ee7b7" },
-    blue:   { bg: "rgba(59,130,246,0.1)", border: "rgba(59,130,246,0.3)", iconBg: "rgba(59,130,246,0.2)", text: "#93c5fd" },
+/* ═══════════════════════════════════════════════════════════════
+   TYPING ANIMATION
+   ═══════════════════════════════════════════════════════════════ */
+function TypingText({ words, className }) {
+  const [currentWord, setCurrentWord] = useState(0);
+  const [text, setText] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const word = words[currentWord];
+    const timeout = setTimeout(() => {
+      if (!isDeleting) {
+        setText(word.substring(0, text.length + 1));
+        if (text.length === word.length) {
+          setTimeout(() => setIsDeleting(true), 2000);
+        }
+      } else {
+        setText(word.substring(0, text.length - 1));
+        if (text.length === 0) {
+          setIsDeleting(false);
+          setCurrentWord((prev) => (prev + 1) % words.length);
+        }
+      }
+    }, isDeleting ? 40 : 80);
+    return () => clearTimeout(timeout);
+  }, [text, isDeleting, currentWord, words]);
+
+  return (
+    <span className={className}>
+      {text}
+      <span className="landing-cursor">|</span>
+    </span>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   3D TILT CARD
+   ═══════════════════════════════════════════════════════════════ */
+function TiltCard({ children, className, style }) {
+  const ref = useRef(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotateX = useTransform(y, [-0.5, 0.5], [8, -8]);
+  const rotateY = useTransform(x, [-0.5, 0.5], [-8, 8]);
+
+  const handleMove = (e) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width - 0.5;
+    const py = (e.clientY - rect.top) / rect.height - 0.5;
+    x.set(px);
+    y.set(py);
   };
-  const c = colorMap[color] || colorMap.violet;
+
+  const handleLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5, delay }}
-      whileHover={{ y: -4 }}
+      ref={ref}
+      onMouseMove={handleMove}
+      onMouseLeave={handleLeave}
       style={{
-        background: c.bg,
-        border: `1px solid ${c.border}`,
-        borderRadius: 16,
-        padding: "28px",
-        cursor: "default",
-        transition: "box-shadow 0.25s ease",
+        rotateX,
+        rotateY,
+        transformPerspective: 800,
+        transformStyle: "preserve-3d",
+        ...style,
       }}
-      onMouseEnter={e => e.currentTarget.style.boxShadow = `0 0 30px ${c.border}`}
-      onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
+      className={className}
     >
-      <div style={{ width: 48, height: 48, borderRadius: 12, background: c.iconBg, display: "flex", alignItems: "center", justifyContent: "center", color: c.text, marginBottom: 16 }}>
-        {icon}
-      </div>
-      <h3 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, color: "var(--text-primary)", marginBottom: 8 }}>{title}</h3>
-      <p style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.65 }}>{desc}</p>
+      {children}
     </motion.div>
   );
 }
 
-/* ── Pricing Card ── */
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATED GRADIENT BORDER
+   ═══════════════════════════════════════════════════════════════ */
+function GradientBorderCard({ children, style, delay = 0 }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 40 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+      className="landing-gradient-border-card"
+      style={style}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HORIZONTAL MARQUEE
+   ═══════════════════════════════════════════════════════════════ */
+function Marquee({ children, speed = 30, direction = "left" }) {
+  return (
+    <div className="landing-marquee-container">
+      <motion.div
+        className="landing-marquee-track"
+        animate={{
+          x: direction === "left" ? ["0%", "-50%"] : ["-50%", "0%"],
+        }}
+        transition={{
+          x: {
+            repeat: Infinity,
+            repeatType: "loop",
+            duration: speed,
+            ease: "linear",
+          },
+        }}
+      >
+        {children}
+        {children}
+      </motion.div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FEATURE CARD (PREMIUM)
+   ═══════════════════════════════════════════════════════════════ */
+function FeatureCard({ icon, title, desc, gradient, delay }) {
+  return (
+    <TiltCard>
+      <motion.div
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-40px" }}
+        transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+        className="landing-feature-card"
+      >
+        <div className="landing-feature-card-glow" style={{ background: gradient }} />
+        <div className="landing-feature-icon" style={{ background: gradient }}>
+          {icon}
+        </div>
+        <h3 className="landing-feature-title">{title}</h3>
+        <p className="landing-feature-desc">{desc}</p>
+        <div className="landing-feature-arrow">
+          <ArrowUpRight size={16} />
+        </div>
+      </motion.div>
+    </TiltCard>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PRICING CARD
+   ═══════════════════════════════════════════════════════════════ */
 function PricingCard({ plan, price, desc, features, popular, delay }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.5, delay }}
-      whileHover={{ y: -4 }}
-      style={{
-        background: popular ? "rgba(124,58,237,0.12)" : "rgba(255,255,255,0.04)",
-        border: popular ? "1px solid rgba(124,58,237,0.55)" : "1px solid rgba(255,255,255,0.08)",
-        borderRadius: 20,
-        padding: "32px",
-        position: "relative",
-        boxShadow: popular ? "0 0 40px rgba(124,58,237,0.2)" : "none",
-      }}
+      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+      className={`landing-pricing-card ${popular ? "landing-pricing-popular" : ""}`}
     >
       {popular && (
-        <div style={{ position: "absolute", top: -13, left: "50%", transform: "translateX(-50%)" }}>
-          <span style={{ background: "linear-gradient(135deg,#7c3aed,#06b6d4)", color: "white", fontSize: 11, fontWeight: 700, padding: "4px 14px", borderRadius: 999, letterSpacing: "0.06em" }}>
-            MOST POPULAR
-          </span>
+        <div className="landing-pricing-badge">
+          <Sparkles size={12} />
+          MOST POPULAR
         </div>
       )}
-      <div style={{ marginBottom: 8 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: popular ? "#c4b5fd" : "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{plan}</span>
-      </div>
-      <div style={{ fontFamily: "var(--font-heading)", fontSize: 42, fontWeight: 700, color: "white", lineHeight: 1 }}>
+      <div className="landing-pricing-plan">{plan}</div>
+      <div className="landing-pricing-price">
         {price}
-        {price !== "Free" && <span style={{ fontSize: 16, color: "var(--text-secondary)", fontFamily: "var(--font-body)", fontWeight: 400 }}>/mo</span>}
+        {price !== "Free" && <span className="landing-pricing-period">/mo</span>}
       </div>
-      <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 8, marginBottom: 24 }}>{desc}</p>
-      <div className="glow-divider" style={{ marginBottom: 24 }} />
-      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+      <p className="landing-pricing-desc">{desc}</p>
+      <div className="glow-divider" style={{ margin: "24px 0" }} />
+      <ul className="landing-pricing-features">
         {features.map((f, i) => (
-          <li key={i} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: "var(--text-primary)" }}>
-            <CheckCircle2 size={16} style={{ color: popular ? "#c4b5fd" : "#6ee7b7", flexShrink: 0 }} />
+          <motion.li
+            key={i}
+            initial={{ opacity: 0, x: -10 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: delay + 0.05 * i }}
+          >
+            <CheckCircle2 size={16} className="landing-pricing-check" />
             {f}
-          </li>
+          </motion.li>
         ))}
       </ul>
       <Link
         to="/register"
-        style={{
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-          marginTop: 28, padding: "13px 0", borderRadius: 12, fontWeight: 600, fontSize: 14,
-          background: popular ? "linear-gradient(135deg,#7c3aed,#0891b2)" : "rgba(255,255,255,0.07)",
-          color: "white", textDecoration: "none",
-          border: popular ? "none" : "1px solid rgba(255,255,255,0.12)",
-          transition: "all 0.2s ease",
-        }}
-        onMouseEnter={e => { e.currentTarget.style.opacity = "0.85"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-        onMouseLeave={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "translateY(0)"; }}
+        className={`landing-pricing-cta ${popular ? "landing-pricing-cta-popular" : ""}`}
       >
         Get started <ChevronRight size={16} />
       </Link>
@@ -128,273 +342,504 @@ function PricingCard({ plan, price, desc, features, popular, delay }) {
   );
 }
 
-export default function Landing() {
+/* ═══════════════════════════════════════════════════════════════
+   SCROLL INDICATOR
+   ═══════════════════════════════════════════════════════════════ */
+function ScrollIndicator() {
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-deep)", color: "var(--text-primary)", overflowX: "hidden" }}>
-      {/* Animated mesh background */}
-      <div className="mesh-bg" />
-      <div className="mesh-orb-3" />
-
-      {/* ── NAVBAR ── */}
-      <motion.nav
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        style={{
-          position: "sticky", top: 0, zIndex: 100,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "18px 48px",
-          background: "rgba(3,7,18,0.8)",
-          backdropFilter: "blur(20px)",
-          borderBottom: "1px solid rgba(255,255,255,0.07)",
-        }}
+    <motion.div
+      className="landing-scroll-indicator"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 2 }}
+    >
+      <motion.div
+        animate={{ y: [0, 8, 0] }}
+        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
       >
-        {/* Logo */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg,#7c3aed,#06b6d4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <ChevronDown size={20} />
+      </motion.div>
+      <span>Scroll to explore</span>
+    </motion.div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NAVBAR
+   ═══════════════════════════════════════════════════════════════ */
+function Navbar() {
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setScrolled(window.scrollY > 30);
+    window.addEventListener("scroll", handler, { passive: true });
+    return () => window.removeEventListener("scroll", handler);
+  }, []);
+
+  const navLinks = ["Features", "Pricing", "About"];
+
+  return (
+    <motion.nav
+      initial={{ opacity: 0, y: -30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      className={`landing-navbar ${scrolled ? "landing-navbar-scrolled" : ""}`}
+    >
+      {/* Logo */}
+      <Link to="/" style={{ textDecoration: "none" }}>
+        <div className="landing-logo">
+          <div className="landing-logo-icon">
             <Cpu size={18} color="white" />
           </div>
-          <span style={{ fontFamily: "var(--font-heading)", fontSize: 20, fontWeight: 700, color: "white" }}>
+          <span className="landing-logo-text">
             AI<span className="gradient-text">SaaS</span>
           </span>
-          <span className="badge badge-violet" style={{ marginLeft: 4 }}>Beta</span>
+          <span className="landing-version-badge">v2.0</span>
         </div>
+      </Link>
 
-        {/* Nav links */}
-        <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
-          {["Features", "Pricing", "About"].map(item => (
-            <a key={item} href={`#${item.toLowerCase()}`} style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none", transition: "color 0.2s" }}
-              onMouseEnter={e => e.currentTarget.style.color = "white"}
-              onMouseLeave={e => e.currentTarget.style.color = "var(--text-secondary)"}>
-              {item}
-            </a>
-          ))}
-        </div>
+      {/* Desktop Links */}
+      <div className="landing-nav-links">
+        {navLinks.map((item) => (
+          <a key={item} href={`#${item.toLowerCase()}`} className="landing-nav-link">
+            {item}
+            <span className="landing-nav-link-line" />
+          </a>
+        ))}
+      </div>
 
-        {/* CTA Buttons */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link to="/login" style={{ fontSize: 14, color: "var(--text-secondary)", textDecoration: "none", padding: "9px 18px", borderRadius: 10, transition: "color 0.2s" }}
-            onMouseEnter={e => e.currentTarget.style.color = "white"}
-            onMouseLeave={e => e.currentTarget.style.color = "var(--text-secondary)"}>
-            Login
-          </Link>
-          <Link to="/register" className="btn-primary" style={{ fontSize: 14, padding: "9px 22px", textDecoration: "none" }}>
-            Start Free <ArrowRight size={15} />
-          </Link>
-        </div>
-      </motion.nav>
+      {/* CTA */}
+      <div className="landing-nav-cta">
+        <Link to="/login" className="landing-nav-signin">
+          Sign in
+        </Link>
+        <Link to="/register" className="landing-nav-start">
+          <span>Get Started</span>
+          <ArrowRight size={15} />
+        </Link>
+      </div>
 
-      {/* ── HERO ── */}
-      <section style={{ padding: "100px 48px 80px", textAlign: "center", maxWidth: 900, margin: "0 auto", position: "relative", zIndex: 1 }}>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.3)", borderRadius: 999, padding: "6px 16px", marginBottom: 32 }}>
-            <Star size={13} style={{ color: "#c4b5fd" }} />
-            <span style={{ fontSize: 12, color: "#c4b5fd", fontWeight: 600, letterSpacing: "0.04em" }}>AI-POWERED TOOLS FOR CREATORS</span>
-          </div>
+      {/* Mobile toggle */}
+      <button
+        className="landing-mobile-toggle"
+        onClick={() => setMobileOpen(!mobileOpen)}
+        aria-label="Toggle menu"
+      >
+        {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+      </button>
+
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="landing-mobile-menu"
+          >
+            {navLinks.map((item) => (
+              <a
+                key={item}
+                href={`#${item.toLowerCase()}`}
+                className="landing-mobile-link"
+                onClick={() => setMobileOpen(false)}
+              >
+                {item}
+              </a>
+            ))}
+            <div className="landing-mobile-actions">
+              <Link to="/login" className="landing-nav-signin" onClick={() => setMobileOpen(false)}>
+                Sign in
+              </Link>
+              <Link to="/register" className="landing-nav-start" onClick={() => setMobileOpen(false)}>
+                <span>Get Started</span>
+                <ArrowRight size={15} />
+              </Link>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.nav>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN LANDING COMPONENT
+   ═══════════════════════════════════════════════════════════════ */
+export default function Landing() {
+  const heroWords = useMemo(
+    () => ["Content", "Images", "Summaries", "Translations", "Ideas"],
+    []
+  );
+
+  const features = [
+    { icon: <Sparkles size={24} />, title: "AI Text Generator", desc: "Generate articles, blogs, social posts, and creative copy in seconds with context-aware AI.", gradient: "linear-gradient(135deg, #7c3aed, #a855f7)" },
+    { icon: <FileText size={24} />, title: "Smart Summarizer", desc: "Condense lengthy documents and reports into crisp, meaningful summaries instantly.", gradient: "linear-gradient(135deg, #10b981, #34d399)" },
+    { icon: <Zap size={24} />, title: "Image Generation", desc: "Create breathtaking HD images from simple text prompts — any style, any concept.", gradient: "linear-gradient(135deg, #ec4899, #f472b6)" },
+    { icon: <Globe size={24} />, title: "AI Translator", desc: "Translate between 7+ languages with natural, fluent results powered by AI.", gradient: "linear-gradient(135deg, #f59e0b, #fbbf24)" },
+    { icon: <Brain size={24} />, title: "AI Chat Assistant", desc: "Chat with a powerful AI for brainstorming, Q&A, coding help, and more.", gradient: "linear-gradient(135deg, #06b6d4, #22d3ee)" },
+    { icon: <Shield size={24} />, title: "Enterprise Security", desc: "JWT auth, encrypted storage, role-based access, and SOC 2 compliance built in.", gradient: "linear-gradient(135deg, #3b82f6, #60a5fa)" },
+  ];
+
+  const testimonials = [
+    { name: "Sarah Chen", role: "Product Designer", text: "AISaaS completely transformed my workflow. I generate assets 10x faster.", avatar: "SC" },
+    { name: "Marcus Johnson", role: "Content Creator", text: "The text generator is insane. It understands context better than anything I've used.", avatar: "MJ" },
+    { name: "Priya Patel", role: "Startup Founder", text: "We replaced 3 different tools with AISaaS. The pricing is unbeatable.", avatar: "PP" },
+    { name: "Alex Rivera", role: "Developer", text: "Image generation quality rivals DALL-E. And the API is beautifully simple.", avatar: "AR" },
+    { name: "Emma Wilson", role: "Marketing Lead", text: "Our content production increased 5x. AISaaS is now essential for our team.", avatar: "EW" },
+    { name: "James Kim", role: "Freelancer", text: "The summarizer alone saved me hours every week. Can't imagine working without it.", avatar: "JK" },
+  ];
+
+  /* letter-by-letter stagger animation */
+  const headingVariants = {
+    hidden: {},
+    visible: {
+      transition: {
+        staggerChildren: 0.03,
+      },
+    },
+  };
+
+  const letterVariants = {
+    hidden: { opacity: 0, y: 30, filter: "blur(8px)" },
+    visible: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
+  };
+
+  const headingText = "Create Anything With";
+
+  return (
+    <div className="landing-root">
+      {/* Backgrounds */}
+      <ParticleField />
+      <div className="landing-grid-bg" />
+      <div className="landing-radial-glow landing-radial-glow-1" />
+      <div className="landing-radial-glow landing-radial-glow-2" />
+      <div className="landing-radial-glow landing-radial-glow-3" />
+
+      <Navbar />
+
+      {/* ── HERO SECTION ── */}
+      <section className="landing-hero">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          className="landing-hero-badge"
+        >
+          <div className="landing-hero-badge-dot" />
+          <span>Now in Public Beta — Try Free Today</span>
+          <ArrowRight size={13} />
         </motion.div>
 
         <motion.h1
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.1 }}
-          style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(42px, 7vw, 76px)", fontWeight: 700, lineHeight: 1.08, letterSpacing: "-0.02em", margin: "0 0 24px" }}
+          className="landing-hero-heading"
+          variants={headingVariants}
+          initial="hidden"
+          animate="visible"
         >
-          Build Smarter With{" "}
-          <span className="gradient-text">AI-Powered</span>
-          <br />Tools That Deliver
+          {headingText.split("").map((char, i) => (
+            <motion.span key={i} variants={letterVariants} style={{ display: "inline-block" }}>
+              {char === " " ? "\u00A0" : char}
+            </motion.span>
+          ))}
+          <br />
+          <TypingText
+            words={heroWords}
+            className="landing-hero-typing"
+          />
         </motion.h1>
 
         <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.35, duration: 0.6 }}
-          style={{ fontSize: 18, color: "var(--text-secondary)", maxWidth: 560, margin: "0 auto 40px", lineHeight: 1.7 }}
+          className="landing-hero-sub"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, duration: 0.6 }}
         >
-          Generate content, summarize text, create stunning images, translate languages — all in one unified AI platform designed for modern creators.
+          The all-in-one AI platform for generating content, images, summaries,
+          and translations. Built for creators who demand excellence.
         </motion.p>
 
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5, duration: 0.5 }}
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14 }}>
-          <Link to="/register" className="btn-primary" style={{ textDecoration: "none", fontSize: 16, padding: "14px 32px" }}>
-            Get Started Free <ArrowRight size={18} />
+        <motion.div
+          className="landing-hero-actions"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1, duration: 0.6 }}
+        >
+          <Link to="/register" className="landing-hero-cta-primary">
+            <span>Start Creating Free</span>
+            <ArrowRight size={18} />
+            <div className="landing-hero-cta-shine" />
           </Link>
-          <Link to="/login" className="btn-ghost" style={{ textDecoration: "none", fontSize: 15 }}>
-            Sign In
-          </Link>
+          <a href="#features" className="landing-hero-cta-secondary">
+            <Play size={16} />
+            <span>See How It Works</span>
+          </a>
         </motion.div>
 
-        {/* Trust bar */}
+        {/* Trust metrics */}
         <motion.div
+          className="landing-trust-bar"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.75 }}
-          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 28, marginTop: 48, flexWrap: "wrap" }}
+          transition={{ delay: 1.3 }}
         >
           {[
-            { icon: <Users size={14} />, label: "10,000+ Users" },
-            { icon: <Star size={14} />, label: "4.9 / 5 Rating" },
-            { icon: <Shield size={14} />, label: "SOC 2 Secure" },
-          ].map(({ icon, label }) => (
-            <div key={label} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--text-secondary)" }}>
-              <span style={{ color: "#c4b5fd" }}>{icon}</span>
-              {label}
+            { icon: <Users size={14} />, text: "10,000+ Creators" },
+            { icon: <Star size={14} />, text: "4.9/5 Rating" },
+            { icon: <Shield size={14} />, text: "SOC 2 Certified" },
+            { icon: <Zap size={14} />, text: "99.9% Uptime" },
+          ].map(({ icon, text }) => (
+            <div key={text} className="landing-trust-item">
+              <span className="landing-trust-icon">{icon}</span>
+              <span>{text}</span>
             </div>
           ))}
         </motion.div>
+
+        <ScrollIndicator />
+      </section>
+
+      {/* ── LOGOS / MARQUEE ── */}
+      <section className="landing-marquee-section">
+        <Marquee speed={40}>
+          <div className="landing-marquee-items">
+            {testimonials.map((t, i) => (
+              <div key={i} className="landing-testimonial-chip">
+                <div className="landing-testimonial-avatar">{t.avatar}</div>
+                <div>
+                  <p className="landing-testimonial-text">"{t.text}"</p>
+                  <p className="landing-testimonial-meta">{t.name} · {t.role}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Marquee>
       </section>
 
       {/* ── FEATURES ── */}
-      <section id="features" style={{ padding: "80px 48px", maxWidth: 1200, margin: "0 auto", position: "relative", zIndex: 1 }}>
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }} style={{ textAlign: "center", marginBottom: 60 }}>
-          <span className="badge badge-cyan" style={{ marginBottom: 16 }}>FEATURES</span>
-          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(28px,4vw,44px)", fontWeight: 700, letterSpacing: "-0.02em" }}>
-            Everything you need to <span className="gradient-text">create</span>
+      <section id="features" className="landing-section">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="landing-section-header"
+        >
+          <span className="landing-section-badge">
+            <Command size={12} />
+            FEATURES
+          </span>
+          <h2 className="landing-section-title">
+            Six powerful tools.{" "}
+            <span className="gradient-text">One platform.</span>
           </h2>
-          <p style={{ color: "var(--text-secondary)", fontSize: 16, marginTop: 12, maxWidth: 480, margin: "12px auto 0" }}>
-            Six powerful AI tools bundled into one seamless platform.
+          <p className="landing-section-desc">
+            Everything you need to generate, translate, summarize, and create — powered by state-of-the-art AI models.
           </p>
         </motion.div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20 }}>
-          <FeatureCard icon={<Sparkles size={22} />} color="violet" title="AI Text Generator" desc="Generate articles, blogs, social posts, and creative copy in seconds with context-aware AI." delay={0} />
-          <FeatureCard icon={<FileText size={22} />} color="emerald" title="Smart Summarizer" desc="Condense lengthy documents, articles, and reports into crisp, meaningful summaries." delay={0.07} />
-          <FeatureCard icon={<Zap size={22} />} color="pink" title="Image Generation" desc="Create breathtaking HD images from simple text prompts — any style, any concept." delay={0.14} />
-          <FeatureCard icon={<Globe size={22} />} color="amber" title="AI Translator" desc="Translate between 7+ languages with natural, fluent results powered by AI." delay={0.21} />
-          <FeatureCard icon={<Brain size={22} />} color="cyan" title="AI Chat Assistant" desc="Chat with a powerful AI for brainstorming, Q&A, coding help, and more." delay={0.28} />
-          <FeatureCard icon={<Shield size={22} />} color="blue" title="Secure & Private" desc="Enterprise-grade security with JWT auth, encrypted storage, and role-based access." delay={0.35} />
+
+        <div className="landing-features-grid">
+          {features.map((f, i) => (
+            <FeatureCard key={f.title} {...f} delay={i * 0.08} />
+          ))}
         </div>
       </section>
 
       {/* ── STATS ── */}
-      <section style={{ padding: "60px 48px", position: "relative", zIndex: 1 }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 2 }}>
+      <section className="landing-stats-section">
+        <div className="landing-stats-grid">
           {[
-            { n: 10000, suffix: "+", label: "Active Users", color: "#c4b5fd" },
-            { n: 500000, suffix: "+", label: "AI Requests Served", color: "#67e8f9" },
-            { n: 50000, suffix: "+", label: "Images Generated", color: "#f9a8d4" },
-            { n: 99, suffix: "%", label: "Uptime SLA", color: "#6ee7b7" },
-          ].map(({ n, suffix, label, color }, i) => (
+            { n: 10000, suffix: "+", label: "Active Users", icon: <Users size={22} />, gradient: "linear-gradient(135deg, #7c3aed, #a855f7)" },
+            { n: 500000, suffix: "+", label: "AI Requests", icon: <Zap size={22} />, gradient: "linear-gradient(135deg, #06b6d4, #22d3ee)" },
+            { n: 50000, suffix: "+", label: "Images Created", icon: <Sparkles size={22} />, gradient: "linear-gradient(135deg, #ec4899, #f472b6)" },
+            { n: 99, suffix: ".9%", label: "Uptime SLA", icon: <Shield size={22} />, gradient: "linear-gradient(135deg, #10b981, #34d399)" },
+          ].map(({ n, suffix, label, icon, gradient }, i) => (
             <motion.div
               key={label}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 30, scale: 0.95 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              style={{ textAlign: "center", padding: "40px 20px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16 }}
+              transition={{ delay: i * 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="landing-stat-card"
             >
-              <div style={{ fontFamily: "var(--font-heading)", fontSize: 44, fontWeight: 700, color, lineHeight: 1 }}>
+              <div className="landing-stat-icon" style={{ background: gradient }}>
+                {icon}
+              </div>
+              <div className="landing-stat-number">
                 <Counter to={n} suffix={suffix} />
               </div>
-              <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 8 }}>{label}</div>
+              <div className="landing-stat-label">{label}</div>
             </motion.div>
           ))}
         </div>
       </section>
 
       {/* ── PRICING ── */}
-      <section id="pricing" style={{ padding: "80px 48px", maxWidth: 1100, margin: "0 auto", position: "relative", zIndex: 1 }}>
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }} style={{ textAlign: "center", marginBottom: 60 }}>
-          <span className="badge badge-amber" style={{ marginBottom: 16 }}>PRICING</span>
-          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(28px,4vw,44px)", fontWeight: 700, letterSpacing: "-0.02em" }}>
-            Simple, transparent <span className="gradient-text">pricing</span>
-          </h2>
-        </motion.div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 24 }}>
-          <PricingCard plan="Basic" price="Free" desc="Perfect for getting started" features={["AI Text Generation","AI Summarizer","Basic Translator","Image Generator (10/day)"]} delay={0} />
-          <PricingCard plan="Pro" price="$9.99" desc="For serious creators" features={["Everything in Basic","Fast AI responses","HD Image Generation","500 images / month","Priority support"]} popular delay={0.1} />
-          <PricingCard plan="Ultimate" price="$19.99" desc="For power users and teams" features={["Everything in Pro","Ultra-fast AI","Unlimited images","API access","Dedicated support"]} delay={0.2} />
-        </div>
-      </section>
-
-      {/* ── CTA Banner ── */}
-      <section style={{ padding: "80px 48px", position: "relative", zIndex: 1 }}>
+      <section id="pricing" className="landing-section">
         <motion.div
-          initial={{ opacity: 0, scale: 0.97 }}
-          whileInView={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          style={{
-            maxWidth: 800, margin: "0 auto", textAlign: "center",
-            background: "linear-gradient(135deg,rgba(124,58,237,0.15),rgba(6,182,212,0.1))",
-            border: "1px solid rgba(124,58,237,0.35)",
-            borderRadius: 24, padding: "64px 40px",
-            boxShadow: "0 0 60px rgba(124,58,237,0.15)",
-          }}
+          className="landing-section-header"
         >
-          <TrendingUp size={36} style={{ color: "#c4b5fd", marginBottom: 20 }} />
-          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 38, fontWeight: 700, letterSpacing: "-0.02em", marginBottom: 16 }}>
-            Ready to supercharge<br />your workflow?
+          <span className="landing-section-badge">
+            <Layers size={12} />
+            PRICING
+          </span>
+          <h2 className="landing-section-title">
+            Simple, transparent{" "}
+            <span className="gradient-text">pricing</span>
           </h2>
-          <p style={{ color: "var(--text-secondary)", fontSize: 16, marginBottom: 32, lineHeight: 1.6 }}>
-            Join thousands of creators using AISaaS to work smarter every day.
+          <p className="landing-section-desc">
+            No hidden fees. Start free and scale when you're ready.
           </p>
-          <Link to="/register" className="btn-primary" style={{ textDecoration: "none", fontSize: 16, padding: "14px 36px" }}>
-            Start Building for Free <ArrowRight size={18} />
-          </Link>
         </motion.div>
+
+        <div className="landing-pricing-grid">
+          <PricingCard
+            plan="Starter"
+            price="Free"
+            desc="Perfect for getting started"
+            features={["AI Text Generation", "AI Summarizer", "Basic Translator", "10 images / day", "Community support"]}
+            delay={0}
+          />
+          <PricingCard
+            plan="Pro"
+            price="$9.99"
+            desc="For serious creators"
+            features={["Everything in Starter", "Fast AI responses", "HD Image Generation", "500 images / month", "Priority support", "API access"]}
+            popular
+            delay={0.1}
+          />
+          <PricingCard
+            plan="Ultimate"
+            price="$19.99"
+            desc="For power users & teams"
+            features={["Everything in Pro", "Ultra-fast AI models", "Unlimited images", "Full API access", "Custom integrations", "Dedicated support"]}
+            delay={0.2}
+          />
+        </div>
       </section>
 
       {/* ── ABOUT ── */}
-      <section id="about" style={{ padding: "80px 48px", maxWidth: 1100, margin: "0 auto", position: "relative", zIndex: 1 }}>
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }} style={{ textAlign: "center", marginBottom: 60 }}>
-          <span className="badge badge-violet" style={{ marginBottom: 16 }}>ABOUT US</span>
-          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(28px,4vw,44px)", fontWeight: 700, letterSpacing: "-0.02em" }}>
+      <section id="about" className="landing-section">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="landing-section-header"
+        >
+          <span className="landing-section-badge">
+            <Star size={12} />
+            ABOUT US
+          </span>
+          <h2 className="landing-section-title">
             Built for <span className="gradient-text">creators</span>, by creators
           </h2>
-          <p style={{ color: "var(--text-secondary)", fontSize: 16, marginTop: 16, maxWidth: 560, margin: "16px auto 0", lineHeight: 1.7 }}>
-            AISaaS was founded with a single mission — democratize access to powerful AI tools so every creator, developer, and entrepreneur can build without limits.
+          <p className="landing-section-desc">
+            AISaaS was born from a single idea — make powerful AI tools accessible to everyone, not just enterprises.
           </p>
         </motion.div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20 }}>
+        <div className="landing-about-grid">
           {[
-            { emoji: "🚀", title: "Our Mission", desc: "Make AI-powered creativity accessible to everyone — regardless of technical background or budget." },
-            { emoji: "🌍", title: "Our Vision", desc: "A world where anyone can generate, translate, summarize, and create stunning content in seconds." },
-            { emoji: "🔒", title: "Our Values", desc: "Privacy-first, transparent pricing, and enterprise-grade security at every layer of our platform." },
-            { emoji: "🤝", title: "Our Team", desc: "A passionate team of engineers and designers building the future of AI-assisted creation." },
-          ].map(({ emoji, title, desc }, i) => (
-            <motion.div
-              key={title}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
-              whileHover={{ y: -4 }}
-              style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: 16,
-                padding: "28px",
-                transition: "box-shadow 0.25s ease",
-              }}
-              onMouseEnter={e => e.currentTarget.style.boxShadow = "0 0 30px rgba(124,58,237,0.2)"}
-              onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
-            >
-              <div style={{ fontSize: 36, marginBottom: 16 }}>{emoji}</div>
-              <h3 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, color: "var(--text-primary)", marginBottom: 10 }}>{title}</h3>
-              <p style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.65 }}>{desc}</p>
-            </motion.div>
+            { icon: <TrendingUp size={28} />, title: "Our Mission", desc: "Democratize AI so every creator can build without limits — regardless of technical background or budget.", gradient: "linear-gradient(135deg, #7c3aed, #a855f7)" },
+            { icon: <Globe size={28} />, title: "Our Vision", desc: "A world where anyone can generate, translate, summarize, and create stunning content in seconds.", gradient: "linear-gradient(135deg, #06b6d4, #22d3ee)" },
+            { icon: <Shield size={28} />, title: "Our Values", desc: "Privacy-first. Transparent pricing. Enterprise-grade security at every layer of our platform.", gradient: "linear-gradient(135deg, #10b981, #34d399)" },
+            { icon: <Users size={28} />, title: "Our Team", desc: "A passionate team of engineers, designers, and AI researchers building the future of creative tools.", gradient: "linear-gradient(135deg, #ec4899, #f472b6)" },
+          ].map(({ icon, title, desc, gradient }, i) => (
+            <GradientBorderCard key={title} delay={i * 0.1}>
+              <div className="landing-about-card-icon" style={{ background: gradient }}>
+                {icon}
+              </div>
+              <h3 className="landing-about-card-title">{title}</h3>
+              <p className="landing-about-card-desc">{desc}</p>
+            </GradientBorderCard>
           ))}
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
-      <footer style={{ borderTop: "1px solid rgba(255,255,255,0.07)", padding: "40px 48px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16, position: "relative", zIndex: 1 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 8, background: "linear-gradient(135deg,#7c3aed,#06b6d4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Cpu size={14} color="white" />
+      {/* ── CTA BANNER ── */}
+      <section className="landing-section">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          className="landing-cta-banner"
+        >
+          <div className="landing-cta-banner-bg" />
+          <div className="landing-cta-banner-content">
+            <motion.div
+              initial={{ scale: 0 }}
+              whileInView={{ scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ type: "spring", delay: 0.2 }}
+              className="landing-cta-banner-icon"
+            >
+              <Sparkles size={32} />
+            </motion.div>
+            <h2 className="landing-cta-title">
+              Ready to supercharge<br />your creative workflow?
+            </h2>
+            <p className="landing-cta-desc">
+              Join 10,000+ creators who use AISaaS to produce better work, faster.
+            </p>
+            <div className="landing-cta-actions">
+              <Link to="/register" className="landing-hero-cta-primary">
+                <span>Start Building for Free</span>
+                <ArrowRight size={18} />
+                <div className="landing-hero-cta-shine" />
+              </Link>
+            </div>
           </div>
-          <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 16 }}>AI<span className="gradient-text">SaaS</span></span>
+        </motion.div>
+      </section>
+
+      {/* ── FOOTER ── */}
+      <footer className="landing-footer">
+        <div className="landing-footer-top">
+          <div className="landing-footer-brand">
+            <div className="landing-logo">
+              <div className="landing-logo-icon">
+                <Cpu size={16} color="white" />
+              </div>
+              <span className="landing-logo-text" style={{ fontSize: 18 }}>
+                AI<span className="gradient-text">SaaS</span>
+              </span>
+            </div>
+            <p className="landing-footer-tagline">
+              The next-generation AI platform for modern creators.
+            </p>
+          </div>
+          <div className="landing-footer-links">
+            <div className="landing-footer-col">
+              <h4>Product</h4>
+              <a href="#features">Features</a>
+              <a href="#pricing">Pricing</a>
+              <Link to="/register">Get Started</Link>
+            </div>
+            <div className="landing-footer-col">
+              <h4>Company</h4>
+              <a href="#about">About</a>
+              <a href="#">Careers</a>
+              <a href="#">Blog</a>
+            </div>
+            <div className="landing-footer-col">
+              <h4>Legal</h4>
+              <a href="#">Privacy</a>
+              <a href="#">Terms</a>
+              <a href="#">Security</a>
+            </div>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 24 }}>
-          {["Privacy", "Terms", "Contact"].map(link => (
-            <a key={link} href="#" style={{ fontSize: 13, color: "var(--text-muted)", textDecoration: "none", transition: "color 0.2s" }}
-              onMouseEnter={e => e.currentTarget.style.color = "var(--text-secondary)"}
-              onMouseLeave={e => e.currentTarget.style.color = "var(--text-muted)"}>
-              {link}
-            </a>
-          ))}
+        <div className="landing-footer-bottom">
+          <p>© 2025 AISaaS. All rights reserved.</p>
+          <p>Made with ❤️ for creators everywhere</p>
         </div>
-        <p style={{ fontSize: 13, color: "var(--text-muted)" }}>© 2025 AISaaS. All rights reserved.</p>
       </footer>
     </div>
   );
