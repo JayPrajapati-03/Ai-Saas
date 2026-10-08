@@ -288,6 +288,17 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
 }
 
+.input-search-highlighted {
+  border-color: rgba(124, 58, 237, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15), 0 0 16px rgba(124, 58, 237, 0.12) !important;
+  background: rgba(124, 58, 237, 0.05) !important;
+}
+
+.input-search-highlighted:focus {
+  border-color: rgba(124, 58, 237, 0.85) !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.25), 0 0 20px rgba(124, 58, 237, 0.2) !important;
+}
+
 .textarea-premium {
   width: 100%;
   padding: 14px 16px;

@@ -125,12 +125,12 @@ export default function History() {
         </div>
         {/* Search */}
         <div style={{ position: "relative", width: 280 }}>
-          <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+          <Search size={15} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#c4b5fd" }} />
           <input type="text" placeholder="Search title or prompt..." value={search} onChange={handleSearchChange}
-            className="input-premium" style={{ paddingLeft: 36, paddingRight: search ? 36 : 14, fontSize: 13 }} />
+            className="input-premium input-search-highlighted" style={{ paddingLeft: 36, paddingRight: search ? 36 : 14, fontSize: 13 }} />
           {search && (
             <button onClick={clearSearch}
-              style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", display: "flex", padding: 2 }}>
+              style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#c4b5fd", cursor: "pointer", display: "flex", padding: 2 }}>
               <X size={14} />
             </button>
           )}
