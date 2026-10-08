@@ -130,6 +130,16 @@ export function UsageProvider({ children }) {
 
       if (plan !== "Basic" && serverCredits <= 0) {
         setShowOutOfCreditsModal(true);
+        window.dispatchEvent(
+          new CustomEvent("aisaas:notify", {
+            detail: {
+              title: "Credits Depleted ⚠️",
+              message: "You have used all monthly credits. Upgrade your plan to continue creating.",
+              iconName: "CreditCard",
+              color: "#f87171",
+            },
+          })
+        );
       }
     }
   };
@@ -246,6 +256,17 @@ export function UsageProvider({ children }) {
     syncLocalState(targetPlan, allocatedCredits, allocatedRaw, updatedHistory);
     setLoading(false);
 
+    window.dispatchEvent(
+      new CustomEvent("aisaas:notify", {
+        detail: {
+          title: `Plan Upgraded: ${targetPlan} ⚡`,
+          message: `Your account is now upgraded to ${targetPlan} Plan with ${allocatedCredits} credits.`,
+          iconName: "Zap",
+          color: targetPlan === "Ultimate" ? "#fcd34d" : "#c4b5fd",
+        },
+      })
+    );
+
     return {
       success: true,
       message: `🎉 Payment successful! You have upgraded to ${targetPlan} Plan with ${allocatedCredits} credits.`,
@@ -275,6 +296,16 @@ export function UsageProvider({ children }) {
           setCredits("Unlimited credits");
           syncLocalState("Basic", "Unlimited credits", 120);
           setLoading(false);
+          window.dispatchEvent(
+            new CustomEvent("aisaas:notify", {
+              detail: {
+                title: "Plan Changed: Basic 🌱",
+                message: "You switched to the Free Basic Plan. Unlimited standard generations active.",
+                iconName: "Sparkles",
+                color: "#6ee7b7",
+              },
+            })
+          );
           return { success: true, message: data.message };
         }
       }
@@ -287,6 +318,17 @@ export function UsageProvider({ children }) {
     setCredits("Unlimited credits");
     syncLocalState("Basic", "Unlimited credits", 120);
     setLoading(false);
+
+    window.dispatchEvent(
+      new CustomEvent("aisaas:notify", {
+        detail: {
+          title: "Plan Changed: Basic 🌱",
+          message: "You switched to the Free Basic Plan. Unlimited standard generations active.",
+          iconName: "Sparkles",
+          color: "#6ee7b7",
+        },
+      })
+    );
 
     return {
       success: true,

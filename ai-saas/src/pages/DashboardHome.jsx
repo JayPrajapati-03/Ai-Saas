@@ -160,6 +160,16 @@ export default function DashboardHome() {
                 autoClose: 5000,
                 theme: "dark",
               });
+              window.dispatchEvent(
+                new CustomEvent("aisaas:notify", {
+                  detail: {
+                    title: `Rank Up: ${fetchedLevel} Level! 🏆`,
+                    message: `Congratulations! You unlocked ${fetchedLevel} Level with upgraded milestone badges.`,
+                    iconName: "Trophy",
+                    color: fetchedLevel === "Gold" ? "#ffd700" : fetchedLevel === "Platinum" ? "#e5e4e2" : "#c0c0c0",
+                  },
+                })
+              );
             }
           }
 

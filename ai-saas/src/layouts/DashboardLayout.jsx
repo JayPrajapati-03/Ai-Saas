@@ -4,9 +4,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, Sparkles, FileText, ImageIcon, Languages, Clock,
   CreditCard, Settings, Menu, X, ChevronRight, Cpu, LogOut, Bell,
-  CheckCheck, Trash2, Zap
+  CheckCheck, Trash2, Zap, Trophy, Shield
 } from "lucide-react";
 import { useUsage } from "../context/UsageContext";
+import { useNotifications, getRelativeTime } from "../context/NotificationContext";
 import OutOfCreditsModal from "../components/OutOfCreditsModal";
 
 const menuItems = [
@@ -20,37 +21,7 @@ const menuItems = [
   { name: "Admin",           icon: Settings,   path: "/app/admin",             color: "#fda4af" },
 ];
 
-const notifIconMap = { Sparkles, Zap, ImageIcon, Bell };
-
-const defaultNotifications = [
-  {
-    id: 1,
-    title: "Welcome to AISaaS 🎉",
-    message: "Your AI suite is ready. Generate content, summaries, images, and translations.",
-    time: "Just now",
-    unread: true,
-    iconName: "Sparkles",
-    color: "#c4b5fd",
-  },
-  {
-    id: 2,
-    title: "Active Tier: Bronze ⚡",
-    message: "Unlimited text generation and summarization unlocked on your account.",
-    time: "15m ago",
-    unread: true,
-    iconName: "Zap",
-    color: "#6ee7b7",
-  },
-  {
-    id: 3,
-    title: "Image Styles Available 🎨",
-    message: "Try Anime, Cinematic, Pixel Art, and Photorealistic styles in Image Generator.",
-    time: "1h ago",
-    unread: false,
-    iconName: "ImageIcon",
-    color: "#f9a8d4",
-  },
-];
+const notifIconMap = { Sparkles, Zap, ImageIcon, Bell, Trophy, Shield, CreditCard };
 
 export default function DashboardLayout() {
   const {
@@ -59,43 +30,18 @@ export default function DashboardLayout() {
     showOutOfCreditsModal,
     setShowOutOfCreditsModal,
   } = useUsage() || {};
+  const {
+    notifications,
+    unreadCount,
+    markAllAsRead,
+    clearAllNotifications,
+    dismissNotification,
+    toggleRead,
+  } = useNotifications();
+
   const [open, setOpen] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifications, setNotifications] = useState(() => {
-    try {
-      const saved = localStorage.getItem("aisaas_notifications");
-      if (saved !== null) {
-        return JSON.parse(saved);
-      }
-    } catch { /* noop */ }
-    return defaultNotifications;
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("aisaas_notifications", JSON.stringify(notifications));
-    } catch { /* noop */ }
-  }, [notifications]);
-
-  const unreadCount = notifications.filter(n => n.unread).length;
-
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
-  };
-
-  const clearAllNotifications = () => {
-    setNotifications([]);
-  };
-
-  const dismissNotification = (id, e) => {
-    e.stopPropagation();
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  };
-
-  const toggleRead = (id) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, unread: !n.unread } : n));
-  };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -616,7 +562,7 @@ export default function DashboardLayout() {
                                   {n.message}
                                 </div>
                                 <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6 }}>
-                                  {n.time}
+                                  {n.createdAt ? getRelativeTime(n.createdAt) : n.time || "Just now"}
                                 </div>
                               </div>
                             </div>

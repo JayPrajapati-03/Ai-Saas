@@ -12,6 +12,7 @@ import Billing from './pages/Billing'
 import AdminDashboard from './pages/AdminDashboard'
 import DashboardLayout from './layouts/DashboardLayout'
 import { UsageProvider } from './context/UsageContext'
+import { NotificationProvider } from './context/NotificationContext'
 
 function App() {
   return (
@@ -22,7 +23,9 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/app" element={
           <UsageProvider>
-            <DashboardLayout />
+            <NotificationProvider>
+              <DashboardLayout />
+            </NotificationProvider>
           </UsageProvider>
         }>
           <Route index element={<DashboardHome />} />
