@@ -333,6 +333,50 @@ export default function Landing() {
         </motion.div>
       </section>
 
+      {/* ── ABOUT ── */}
+      <section id="about" style={{ padding: "80px 48px", maxWidth: 1100, margin: "0 auto", position: "relative", zIndex: 1 }}>
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }} style={{ textAlign: "center", marginBottom: 60 }}>
+          <span className="badge badge-violet" style={{ marginBottom: 16 }}>ABOUT US</span>
+          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "clamp(28px,4vw,44px)", fontWeight: 700, letterSpacing: "-0.02em" }}>
+            Built for <span className="gradient-text">creators</span>, by creators
+          </h2>
+          <p style={{ color: "var(--text-secondary)", fontSize: 16, marginTop: 16, maxWidth: 560, margin: "16px auto 0", lineHeight: 1.7 }}>
+            AISaaS was founded with a single mission — democratize access to powerful AI tools so every creator, developer, and entrepreneur can build without limits.
+          </p>
+        </motion.div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20 }}>
+          {[
+            { emoji: "🚀", title: "Our Mission", desc: "Make AI-powered creativity accessible to everyone — regardless of technical background or budget." },
+            { emoji: "🌍", title: "Our Vision", desc: "A world where anyone can generate, translate, summarize, and create stunning content in seconds." },
+            { emoji: "🔒", title: "Our Values", desc: "Privacy-first, transparent pricing, and enterprise-grade security at every layer of our platform." },
+            { emoji: "🤝", title: "Our Team", desc: "A passionate team of engineers and designers building the future of AI-assisted creation." },
+          ].map(({ emoji, title, desc }, i) => (
+            <motion.div
+              key={title}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.08 }}
+              whileHover={{ y: -4 }}
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 16,
+                padding: "28px",
+                transition: "box-shadow 0.25s ease",
+              }}
+              onMouseEnter={e => e.currentTarget.style.boxShadow = "0 0 30px rgba(124,58,237,0.2)"}
+              onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
+            >
+              <div style={{ fontSize: 36, marginBottom: 16 }}>{emoji}</div>
+              <h3 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, color: "var(--text-primary)", marginBottom: 10 }}>{title}</h3>
+              <p style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.65 }}>{desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
       {/* ── FOOTER ── */}
       <footer style={{ borderTop: "1px solid rgba(255,255,255,0.07)", padding: "40px 48px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16, position: "relative", zIndex: 1 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
