@@ -121,11 +121,11 @@ function getGreeting() {
 export default function DashboardHome() {
   const [userName, setUserName] = useState("User");
   const { usageCount, plan, credits } = useUsage();
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState(() => ({
     credits: "∞",
     todayUsage: 0,
-    userLevel: "Bronze",
-  });
+    userLevel: localStorage.getItem("userLevel") || "Bronze",
+  }));
 
   useEffect(() => {
     try {
@@ -148,7 +148,25 @@ export default function DashboardHome() {
           },
         });
         const data = await res.json();
-        if (data.success) {
+        if (data.success && data.stats) {
+          const fetchedLevel = data.stats.userLevel;
+          const prevLevel = localStorage.getItem("userLevel");
+
+          if (fetchedLevel && prevLevel && fetchedLevel !== prevLevel) {
+            const levels = ["Bronze", "Silver", "Gold", "Platinum"];
+            if (levels.indexOf(fetchedLevel) > levels.indexOf(prevLevel)) {
+              toast.success(`🎉 You reached ${fetchedLevel} Level!`, {
+                position: "top-center",
+                autoClose: 5000,
+                theme: "dark",
+              });
+            }
+          }
+
+          if (fetchedLevel) {
+            localStorage.setItem("userLevel", fetchedLevel);
+          }
+
           if (data.stats.plan === "Basic" || data.stats.userLevel === "Bronze") {
             data.stats.credits = "∞";
           }
@@ -160,21 +178,6 @@ export default function DashboardHome() {
     };
     fetchStats();
   }, []);
-
-  useEffect(() => {
-    const prevLevel = localStorage.getItem("userLevel");
-    if (stats.userLevel && prevLevel && stats.userLevel !== prevLevel) {
-      const levels = ["Bronze", "Silver", "Gold", "Platinum"];
-      if (levels.indexOf(stats.userLevel) > levels.indexOf(prevLevel)) {
-        toast.success(`🎉 You reached ${stats.userLevel} Level!`, {
-          position: "top-center",
-          autoClose: 5000,
-          theme: "dark",
-        });
-      }
-    }
-    if (stats.userLevel) localStorage.setItem("userLevel", stats.userLevel);
-  }, [stats.userLevel]);
 
   const lvl = levelColors[stats.userLevel] || levelColors.Bronze;
   const currentPlanConfig = planBadges[plan] || planBadges.Basic;
