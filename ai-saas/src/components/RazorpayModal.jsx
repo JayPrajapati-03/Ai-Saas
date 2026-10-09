@@ -313,6 +313,12 @@ export default function RazorpayModal({
                 Secured by{" "}
                 <span style={{ color: "#38bdf8", fontWeight: 700 }}>Razorpay</span>
               </div>
+              <div style={{ fontSize: 10, color: "rgba(148, 163, 184, 0.7)", marginTop: 8, lineHeight: 1.4 }}>
+                By paying, you accept our{" "}
+                <a href="/terms" target="_blank" rel="noreferrer" style={{ color: "#93c5fd", textDecoration: "underline" }}>Terms</a>
+                {" & "}
+                <a href="/terms#billing-refunds" target="_blank" rel="noreferrer" style={{ color: "#93c5fd", textDecoration: "underline" }}>Refund Policy</a>
+              </div>
             </div>
           </div>
 

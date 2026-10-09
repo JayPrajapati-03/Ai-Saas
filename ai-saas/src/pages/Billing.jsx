@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check,
@@ -733,6 +733,35 @@ export default function Billing() {
               </motion.div>
             );
           })}
+        </div>
+
+        {/* Billing Terms & Refund Policy Notice */}
+        <div style={{
+          marginTop: 20,
+          padding: "14px 18px",
+          background: "rgba(255, 255, 255, 0.02)",
+          border: "1px solid rgba(255, 255, 255, 0.07)",
+          borderRadius: 14,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 12,
+          fontSize: 12.5,
+          color: "var(--text-muted)"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Shield size={16} color="#a78bfa" style={{ flexShrink: 0 }} />
+            <span>
+              All purchases are processed securely with SSL encryption. Transactions and subscription renewals are governed by our{" "}
+              <Link to="/terms" style={{ color: "#c4b5fd", textDecoration: "underline" }}>Terms of Service</Link>{" "}
+              and{" "}
+              <Link to="/privacy" style={{ color: "#c4b5fd", textDecoration: "underline" }}>Privacy Policy</Link>.
+            </span>
+          </div>
+          <Link to="/terms#billing-refunds" style={{ color: "var(--text-secondary)", fontSize: 12, textDecoration: "none", fontWeight: 500 }}>
+            Refund & Cancellation Policy →
+          </Link>
         </div>
       </div>
 

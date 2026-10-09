@@ -903,8 +903,8 @@ export default function Landing() {
                 </a>
                 <a href="#about"><FileText size={12} />Blog & Stories</a>
                 <a href="#about"><Globe size={12} />Press & Media</a>
-                <a href="#"><Shield size={12} />Privacy Policy</a>
-                <a href="#"><FileText size={12} />Terms of Service</a>
+                <Link to="/privacy"><Shield size={12} />Privacy Policy</Link>
+                <Link to="/terms"><FileText size={12} />Terms of Service</Link>
               </div>
 
               {/* Col 6: Stay Updated / Newsletter */}
@@ -945,15 +945,15 @@ export default function Landing() {
               </div>
 
               <div className="landing-footer-bottom-links">
-                <a href="#">Privacy</a>
+                <Link to="/privacy">Privacy</Link>
                 <span className="landing-footer-dot">•</span>
-                <a href="#">Terms</a>
+                <Link to="/terms">Terms</Link>
                 <span className="landing-footer-dot">•</span>
-                <a href="#">Security</a>
+                <Link to="/terms#liability">Security</Link>
                 <span className="landing-footer-dot">•</span>
-                <a href="#">Cookies</a>
+                <Link to="/privacy#cookies">Cookies</Link>
                 <span className="landing-footer-dot">•</span>
-                <a href="#">Status</a>
+                <Link to="/terms#availability">Status</Link>
               </div>
 
               <p className="landing-footer-made-with">

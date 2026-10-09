@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Terms from './pages/Terms'
+import Privacy from './pages/Privacy'
 import DashboardHome from './pages/DashboardHome'
 import TextGenerator from './pages/TextGenerator'
 import ImageGenerator from './pages/ImageGenerator'
@@ -21,6 +23,8 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
         <Route path="/app" element={
           <UsageProvider>
             <NotificationProvider>

@@ -202,7 +202,9 @@ export default function Register() {
 
             <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>
               By creating an account, you agree to our{" "}
-              <a href="#" style={{ color: "#c4b5fd", textDecoration: "none" }}>Terms of Service</a>
+              <Link to="/terms" style={{ color: "#c4b5fd", textDecoration: "none", fontWeight: 500 }}>Terms of Service</Link>
+              {" "}and{" "}
+              <Link to="/privacy" style={{ color: "#c4b5fd", textDecoration: "none", fontWeight: 500 }}>Privacy Policy</Link>
             </p>
 
             <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 16 }}>
