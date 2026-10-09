@@ -696,12 +696,12 @@ export default function DashboardLayout() {
                               fontWeight: 700,
                               padding: "2px 8px",
                               borderRadius: 999,
-                              background: plan === "Ultimate" ? "rgba(245,158,11,0.2)" : plan === "Pro" ? "rgba(124,58,237,0.25)" : "rgba(16,185,129,0.18)",
-                              color: plan === "Ultimate" ? "#fcd34d" : plan === "Pro" ? "#c4b5fd" : "#6ee7b7",
-                              border: `1px solid ${plan === "Ultimate" ? "rgba(245,158,11,0.4)" : plan === "Pro" ? "rgba(124,58,237,0.4)" : "rgba(16,185,129,0.3)"}`,
+                              background: "rgba(124,58,237,0.2)",
+                              color: "#c4b5fd",
+                              border: "1px solid rgba(124,58,237,0.4)",
                             }}
                           >
-                            {plan} Tier
+                            USER
                           </span>
                         )}
                       </div>
