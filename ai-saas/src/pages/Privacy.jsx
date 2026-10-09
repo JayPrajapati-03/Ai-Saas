@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { 
   Shield, ArrowLeft, Cpu, CheckCircle2, Lock, Eye, Database, 
-  Server, Globe, Mail, Printer, Key 
+  Server, Globe, Mail, Key 
 } from "lucide-react";
 
 const sections = [
@@ -18,10 +18,6 @@ const sections = [
 ];
 
 export default function Privacy() {
-  const handlePrint = () => {
-    window.print();
-  };
-
   return (
     <div className="legal-page-container">
       <div className="mesh-bg" />
@@ -43,10 +39,7 @@ export default function Privacy() {
             </span>
           </Link>
 
-          <button onClick={handlePrint} className="legal-print-btn" title="Print Policy">
-            <Printer size={15} />
-            <span>Print</span>
-          </button>
+          <div style={{ width: 110 }} />
         </div>
       </header>
 

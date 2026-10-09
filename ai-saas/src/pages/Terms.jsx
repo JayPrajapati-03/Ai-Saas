@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { 
   Shield, FileText, ArrowLeft, Cpu, CheckCircle2, AlertTriangle, 
-  CreditCard, Scale, Lock, RefreshCw, Mail, Printer 
+  CreditCard, Scale, Lock, RefreshCw, Mail 
 } from "lucide-react";
 
 const sections = [
@@ -19,10 +19,6 @@ const sections = [
 ];
 
 export default function Terms() {
-  const handlePrint = () => {
-    window.print();
-  };
-
   return (
     <div className="legal-page-container">
       <div className="mesh-bg" />
@@ -44,10 +40,7 @@ export default function Terms() {
             </span>
           </Link>
 
-          <button onClick={handlePrint} className="legal-print-btn" title="Print Terms">
-            <Printer size={15} />
-            <span>Print</span>
-          </button>
+          <div style={{ width: 110 }} />
         </div>
       </header>
 

@@ -941,7 +941,7 @@ export default function Landing() {
           <div className="landing-footer-bottom">
             <div className="landing-footer-bottom-container">
               <div className="landing-footer-bottom-left">
-                <p>© 2025 AISaaS Inc. All rights reserved.</p>
+                <p>© 2026 AISaaS Inc. All rights reserved.</p>
               </div>
 
               <div className="landing-footer-bottom-links">
