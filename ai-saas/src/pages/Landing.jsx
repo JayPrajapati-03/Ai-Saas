@@ -5,9 +5,10 @@ import {
   Star, CheckCircle2, Users, TrendingUp, ChevronRight, Cpu,
   Play, MousePointerClick, Layers, Command, ArrowUpRight,
   ChevronDown, Menu, X, Twitter, Github, Linkedin, Youtube,
-  Mail, Send, ExternalLink, Heart,
+  Mail, Send, ExternalLink, Heart, Sun, Moon
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext";
 
 /* ═══════════════════════════════════════════════════════════════
    INTERACTIVE PARTICLE CANVAS
@@ -371,6 +372,7 @@ function ScrollIndicator() {
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { theme, isDark, toggleTheme } = useTheme();
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 30);
@@ -412,6 +414,60 @@ function Navbar() {
 
       {/* CTA */}
       <div className="landing-nav-cta">
+        {/* Dark / Light Toggle */}
+        <button
+          onClick={toggleTheme}
+          title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          aria-label="Toggle theme"
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
+            border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.1)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            color: isDark ? "#fcd34d" : "#7c3aed",
+            transition: "all 0.2s ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)";
+            e.currentTarget.style.transform = "scale(1.05)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)";
+            e.currentTarget.style.transform = "scale(1)";
+          }}
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            {isDark ? (
+              <motion.div
+                key="sun"
+                initial={{ rotate: -90, opacity: 0, scale: 0.6 }}
+                animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                exit={{ rotate: 90, opacity: 0, scale: 0.6 }}
+                transition={{ duration: 0.2 }}
+                style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <Sun size={17} />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="moon"
+                initial={{ rotate: 90, opacity: 0, scale: 0.6 }}
+                animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                exit={{ rotate: -90, opacity: 0, scale: 0.6 }}
+                transition={{ duration: 0.2 }}
+                style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <Moon size={17} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </button>
+
         <Link to="/login" className="landing-nav-signin">
           Sign in
         </Link>
@@ -450,6 +506,28 @@ function Navbar() {
               </a>
             ))}
             <div className="landing-mobile-actions">
+              <button
+                onClick={toggleTheme}
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  borderRadius: 10,
+                  background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
+                  border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.1)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  color: isDark ? "#fcd34d" : "#7c3aed",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  marginBottom: 8,
+                }}
+              >
+                {isDark ? <Sun size={16} /> : <Moon size={16} />}
+                <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
+              </button>
               <Link to="/login" className="landing-nav-signin" onClick={() => setMobileOpen(false)}>
                 Sign in
               </Link>

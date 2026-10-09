@@ -821,10 +821,122 @@ html.light .auth-card-glow {
 
 .landing-root {
   min-height: 100vh;
-  background: #030712;
+  background: var(--bg-deep);
   color: var(--text-primary);
   overflow-x: hidden;
   position: relative;
+}
+
+/* ============================================================
+   LIGHT MODE LANDING PAGE STYLING
+   ============================================================ */
+html.light .landing-root {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+}
+
+html.light .landing-navbar-scrolled {
+  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.06);
+}
+
+html.light .landing-logo-text {
+  color: #0f172a;
+}
+
+html.light .landing-nav-link {
+  color: #475569;
+}
+
+html.light .landing-nav-link:hover {
+  color: #0f172a;
+  background: rgba(15, 23, 42, 0.05);
+}
+
+html.light .landing-nav-signin {
+  color: #475569;
+}
+
+html.light .landing-nav-signin:hover {
+  color: #0f172a;
+}
+
+html.light .landing-feature-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+}
+
+html.light .landing-feature-title {
+  color: #0f172a;
+}
+
+html.light .landing-feature-desc {
+  color: #475569;
+}
+
+html.light .landing-pricing-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+}
+
+html.light .landing-pricing-plan {
+  color: #0f172a;
+}
+
+html.light .landing-pricing-price {
+  color: #0f172a;
+}
+
+html.light .landing-pricing-features li {
+  color: #334155;
+}
+
+html.light .landing-mobile-menu {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
+}
+
+html.light .landing-mobile-link {
+  color: #334155;
+}
+
+html.light .landing-grid-bg {
+  background-image:
+    linear-gradient(rgba(124, 58, 237, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124, 58, 237, 0.05) 1px, transparent 1px);
+}
+
+html.light .landing-hero-heading {
+  color: #0f172a;
+}
+
+html.light .landing-hero-badge {
+  background: rgba(124, 58, 237, 0.08);
+  border-color: rgba(124, 58, 237, 0.25);
+  color: #6d28d9;
+}
+
+html.light .landing-hero-cta-secondary {
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.12);
+  color: #334155;
+}
+
+html.light .landing-hero-cta-secondary:hover {
+  background: rgba(15, 23, 42, 0.09);
+  color: #0f172a;
+}
+
+html.light .landing-trust-item {
+  color: #64748b;
+}
+
+html.light .landing-trust-icon {
+  color: #7c3aed;
 }
 
 /* ── Animated Grid Background ── */
