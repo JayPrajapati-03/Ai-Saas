@@ -28,7 +28,7 @@ const adminMenuItems = [
   { name: "Platform Usage",  icon: TrendingUp, path: "/app/admin#activity",   color: "#67e8f9" },
 ];
 
-const notifIconMap = { Sparkles, Zap, ImageIcon, Bell, Trophy, Shield, CreditCard };
+const notifIconMap = { Sparkles, Zap, ImageIcon, Bell, Trophy, Shield, CreditCard, Users, BarChart3, Settings, TrendingUp };
 
 export default function DashboardLayout() {
   const {
@@ -460,8 +460,10 @@ export default function DashboardLayout() {
                 onClick={() => { setNotifOpen(!notifOpen); setMenuOpen(false); }}
                 style={{
                   width: 38, height: 38, borderRadius: 10,
-                  background: notifOpen ? "rgba(124,58,237,0.25)" : "rgba(255,255,255,0.05)",
-                  border: `1px solid ${notifOpen ? "rgba(124,58,237,0.5)" : "rgba(255,255,255,0.1)"}`,
+                  background: notifOpen
+                    ? (isAdmin ? "rgba(239,68,68,0.2)" : "rgba(124,58,237,0.25)")
+                    : "rgba(255,255,255,0.05)",
+                  border: `1px solid ${notifOpen ? (isAdmin ? "rgba(239,68,68,0.5)" : "rgba(124,58,237,0.5)") : "rgba(255,255,255,0.1)"}`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   cursor: "pointer", color: notifOpen ? "white" : "var(--text-secondary)",
                   position: "relative", transition: "all 0.2s"
@@ -474,11 +476,13 @@ export default function DashboardLayout() {
                   <span style={{
                     position: "absolute", top: -2, right: -2,
                     minWidth: 16, height: 16, borderRadius: 999,
-                    background: "linear-gradient(135deg,#7c3aed,#ec4899)",
+                    background: isAdmin
+                      ? "linear-gradient(135deg,#ef4444,#f59e0b)"
+                      : "linear-gradient(135deg,#7c3aed,#ec4899)",
                     border: "2px solid var(--bg-deep)",
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontSize: 10, fontWeight: 700, color: "white", padding: "0 3px",
-                    boxShadow: "0 0 10px rgba(236,72,153,0.6)"
+                    boxShadow: isAdmin ? "0 0 10px rgba(239,68,68,0.6)" : "0 0 10px rgba(236,72,153,0.6)"
                   }}>
                     {unreadCount}
                   </span>
@@ -498,8 +502,10 @@ export default function DashboardLayout() {
                       width: 350, maxWidth: "calc(100vw - 32px)",
                       borderRadius: 16,
                       background: "#0c1222",
-                      border: "1px solid rgba(124,58,237,0.35)",
-                      boxShadow: "0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(124,58,237,0.15)",
+                      border: isAdmin ? "1px solid rgba(239,68,68,0.35)" : "1px solid rgba(124,58,237,0.35)",
+                      boxShadow: isAdmin
+                        ? "0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(239,68,68,0.15)"
+                        : "0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(124,58,237,0.15)",
                       zIndex: 100, overflow: "hidden",
                     }}
                   >
@@ -511,10 +517,24 @@ export default function DashboardLayout() {
                     }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15, color: "white" }}>
-                          Notifications
+                          {isAdmin ? "Admin Alerts" : "Notifications"}
                         </span>
+                        {isAdmin && (
+                          <span style={{
+                            fontSize: 10,
+                            padding: "2px 7px",
+                            borderRadius: 6,
+                            background: "rgba(239,68,68,0.15)",
+                            color: "#fca5a5",
+                            fontWeight: 700,
+                            letterSpacing: "0.05em",
+                            border: "1px solid rgba(239,68,68,0.35)"
+                          }}>
+                            SYSTEM
+                          </span>
+                        )}
                         {unreadCount > 0 ? (
-                          <span className="badge badge-violet" style={{ fontSize: 10, padding: "2px 8px" }}>
+                          <span className={isAdmin ? "badge badge-rose" : "badge badge-violet"} style={{ fontSize: 10, padding: "2px 8px" }}>
                             {unreadCount} new
                           </span>
                         ) : (
@@ -568,7 +588,9 @@ export default function DashboardLayout() {
                           </div>
                           <div>
                             <div style={{ fontWeight: 600, fontSize: 14, color: "white" }}>All caught up!</div>
-                            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>No new notifications at this time.</div>
+                            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
+                              {isAdmin ? "No active system alerts at this time." : "No new notifications at this time."}
+                            </div>
                           </div>
                         </div>
                       ) : (
@@ -642,9 +664,9 @@ export default function DashboardLayout() {
                     }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981", boxShadow: "0 0 6px #10b981" }} />
-                        <span>All systems operational</span>
+                        <span>{isAdmin ? "Admin Security Mode Active" : "All systems operational"}</span>
                       </div>
-                      <span>AISaaS v1.0</span>
+                      <span>{isAdmin ? "Admin v1.0" : "AISaaS v1.0"}</span>
                     </div>
                   </motion.div>
                 )}
