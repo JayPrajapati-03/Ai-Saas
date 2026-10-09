@@ -253,8 +253,6 @@ export default function Terms() {
             <Link to="/terms">Terms of Service</Link>
             <span className="landing-footer-dot">•</span>
             <Link to="/privacy">Privacy Policy</Link>
-            <span className="landing-footer-dot">•</span>
-            <Link to="/">Home</Link>
           </div>
         </div>
       </footer>
