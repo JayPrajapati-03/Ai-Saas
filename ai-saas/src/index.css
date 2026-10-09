@@ -324,6 +324,168 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ============================================================
+   AUTH CARD & PANEL
+   ============================================================ */
+.auth-card-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  z-index: 1;
+}
+
+.auth-card-glow {
+  position: absolute;
+  inset: -24px;
+  background: radial-gradient(circle at 50% 15%, rgba(124, 58, 237, 0.24), rgba(6, 182, 212, 0.12), transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 32px;
+}
+
+.auth-card {
+  position: relative;
+  z-index: 1;
+  background: rgba(12, 16, 36, 0.82);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-top: 1px solid rgba(167, 139, 250, 0.35);
+  border-radius: 24px;
+  padding: 44px 38px;
+  box-shadow:
+    0 24px 64px -12px rgba(0, 0, 0, 0.65),
+    0 0 45px rgba(124, 58, 237, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.auth-card:hover {
+  border-color: rgba(124, 58, 237, 0.28);
+  border-top-color: rgba(167, 139, 250, 0.5);
+  box-shadow:
+    0 28px 70px -12px rgba(0, 0, 0, 0.75),
+    0 0 50px rgba(124, 58, 237, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+.auth-card-mobile-logo {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+  text-decoration: none;
+}
+
+.auth-card-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(6, 182, 212, 0.15));
+  border: 1px solid rgba(124, 58, 237, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  color: #c4b5fd;
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.2);
+}
+
+.auth-card-title {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 700;
+  color: white;
+  margin: 0 0 8px;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.auth-card-subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0 0 30px;
+  line-height: 1.5;
+}
+
+.auth-input-group {
+  margin-bottom: 20px;
+}
+
+.auth-input-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.auth-input-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.auth-input-wrap {
+  position: relative;
+}
+
+.auth-input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.auth-password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 8px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.auth-password-toggle:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.auth-card-footer {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.auth-card-footer-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.auth-card-footer-link {
+  color: #c4b5fd;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.auth-card-footer-link:hover {
+  color: white;
+  text-decoration: underline;
+}
+
+
+/* ============================================================
    STAT CARDS
    ============================================================ */
 .stat-card-violet {

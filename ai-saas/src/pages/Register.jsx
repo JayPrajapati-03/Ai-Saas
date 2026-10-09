@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Lock, Mail, ArrowRight, User, Eye, EyeOff, Cpu, CheckCircle2 } from "lucide-react";
+import { Lock, Mail, ArrowRight, User, Eye, EyeOff, Cpu, CheckCircle2, Sparkles } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { API_URL } from "../config/api";
 
@@ -101,101 +101,124 @@ export default function Register() {
 
       {/* ── RIGHT FORM PANEL ── */}
       <div className="auth-form-panel" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "60px 48px", position: "relative", zIndex: 1 }}>
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          style={{ width: "100%", maxWidth: 420 }}
-        >
-          <div style={{ marginBottom: 36 }}>
-            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 30, fontWeight: 700, marginBottom: 8, letterSpacing: "-0.01em" }}>Create your account</h1>
-            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>It&apos;s free — no credit card required</p>
-          </div>
+        <div className="auth-card-wrap">
+          <div className="auth-card-glow" />
 
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-            {/* Name */}
-            <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 8 }}>Full Name</label>
-              <div style={{ position: "relative" }}>
-                <User size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="John Doe"
-                  className="input-premium"
-                  style={{ paddingLeft: 42 }}
-                  required
-                />
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="auth-card"
+          >
+            {/* Mobile logo (visible when left brand panel hidden on small screens) */}
+            <Link to="/" className="auth-card-mobile-logo">
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: "linear-gradient(135deg,#7c3aed,#06b6d4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Cpu size={18} color="white" />
               </div>
+              <span style={{ fontFamily: "var(--font-heading)", fontSize: 20, fontWeight: 700 }}>
+                AI<span className="gradient-text">SaaS</span>
+              </span>
+            </Link>
+
+            {/* Card Icon Badge */}
+            <div className="auth-card-icon-badge">
+              <Sparkles size={20} />
             </div>
 
-            {/* Email */}
-            <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 8 }}>Email address</label>
-              <div style={{ position: "relative" }}>
-                <Mail size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="input-premium"
-                  style={{ paddingLeft: 42 }}
-                  required
-                />
+            <h1 className="auth-card-title">Create your account</h1>
+            <p className="auth-card-subtitle">It&apos;s free — no credit card required</p>
+
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              {/* Name */}
+              <div className="auth-input-group">
+                <label className="auth-input-label" style={{ marginBottom: 8 }}>Full Name</label>
+                <div className="auth-input-wrap">
+                  <User size={16} className="auth-input-icon" />
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="John Doe"
+                    className="input-premium"
+                    style={{ paddingLeft: 42 }}
+                    required
+                  />
+                </div>
               </div>
+
+              {/* Email */}
+              <div className="auth-input-group">
+                <label className="auth-input-label" style={{ marginBottom: 8 }}>Email address</label>
+                <div className="auth-input-wrap">
+                  <Mail size={16} className="auth-input-icon" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="input-premium"
+                    style={{ paddingLeft: 42 }}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Password */}
+              <div className="auth-input-group">
+                <label className="auth-input-label" style={{ marginBottom: 8 }}>Password</label>
+                <div className="auth-input-wrap">
+                  <Lock size={16} className="auth-input-icon" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Create a strong password"
+                    className="input-premium"
+                    style={{ paddingLeft: 42, paddingRight: 44 }}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="auth-password-toggle"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Submit */}
+              <motion.button
+                type="submit"
+                disabled={loading}
+                whileTap={{ scale: 0.97 }}
+                className="btn-primary"
+                style={{ width: "100%", justifyContent: "center", marginTop: 4, padding: "14px", fontSize: 15 }}
+              >
+                {loading ? "Creating account..." : "Create Free Account"} {!loading && <ArrowRight size={17} />}
+              </motion.button>
+            </form>
+
+            <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>
+              By creating an account, you agree to our{" "}
+              <a href="#" style={{ color: "#c4b5fd", textDecoration: "none" }}>Terms of Service</a>
+            </p>
+
+            <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 16 }}>
+              <div className="glow-divider" style={{ flex: 1 }} />
+              <span style={{ fontSize: 12, color: "var(--text-muted)" }}>or</span>
+              <div className="glow-divider" style={{ flex: 1 }} />
             </div>
 
-            {/* Password */}
-            <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 8 }}>Password</label>
-              <div style={{ position: "relative" }}>
-                <Lock size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Create a strong password"
-                  className="input-premium"
-                  style={{ paddingLeft: 42, paddingRight: 44 }}
-                  required
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", display: "flex", padding: 4 }}>
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
+            <div className="auth-card-footer">
+              <p className="auth-card-footer-text">
+                Already have an account?{" "}
+                <Link to="/login" className="auth-card-footer-link">Sign in</Link>
+              </p>
             </div>
-
-            {/* Submit */}
-            <motion.button
-              type="submit"
-              disabled={loading}
-              whileTap={{ scale: 0.97 }}
-              className="btn-primary"
-              style={{ width: "100%", justifyContent: "center", marginTop: 6, padding: "14px", fontSize: 15 }}
-            >
-              {loading ? "Creating account..." : "Create Free Account"} {!loading && <ArrowRight size={17} />}
-            </motion.button>
-          </form>
-
-          <p style={{ textAlign: "center", marginTop: 24, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>
-            By creating an account, you agree to our{" "}
-            <a href="#" style={{ color: "#c4b5fd", textDecoration: "none" }}>Terms of Service</a>
-          </p>
-
-          <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 16 }}>
-            <div className="glow-divider" style={{ flex: 1 }} />
-            <span style={{ fontSize: 12, color: "var(--text-muted)" }}>or</span>
-            <div className="glow-divider" style={{ flex: 1 }} />
-          </div>
-
-          <p style={{ textAlign: "center", marginTop: 20, fontSize: 14, color: "var(--text-secondary)" }}>
-            Already have an account?{" "}
-            <Link to="/login" style={{ color: "#c4b5fd", textDecoration: "none", fontWeight: 600 }}>Sign in</Link>
-          </p>
-        </motion.div>
+          </motion.div>
+        </div>
       </div>
 
       {/* Popup */}
