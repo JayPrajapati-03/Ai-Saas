@@ -25,6 +25,7 @@ export default function TextGenerator() {
     consumeCredits,
     updateCreditsFromServer,
     openOutOfCreditsModal,
+    setFreeCreditsResetAt,
   } = useUsage() || {};
 
   const handleGenerate = async () => {
@@ -53,10 +54,11 @@ export default function TextGenerator() {
         setOutput(data.output);
         consumeCredits?.(5);
         if (typeof data.remainingCredits === "number") {
-          updateCreditsFromServer?.(data.remainingCredits);
+          updateCreditsFromServer?.(data.remainingCredits, data.freeCreditsResetAt);
         }
       } else {
         if (data.outOfCredits || res.status === 403) {
+          if (data.freeCreditsResetAt) setFreeCreditsResetAt?.(data.freeCreditsResetAt);
           openOutOfCreditsModal?.();
         }
         setOutput(`Error: ${data.message || "Failed to generate text"}`);

@@ -66,6 +66,7 @@ export function UsageProvider({ children }) {
   const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState(null);
   const [purchasedPlan, setPurchasedPlan] = useState(null);
+  const [freeCreditsResetAt, setFreeCreditsResetAt] = useState(null);
 
   const [loading, setLoading] = useState(false);
 
@@ -126,25 +127,29 @@ export function UsageProvider({ children }) {
   };
 
   // Update credits directly from server response
-  const updateCreditsFromServer = (serverCredits) => {
+  const updateCreditsFromServer = (serverCredits, resetAt) => {
     if (typeof serverCredits === "number") {
       setRawCredits(serverCredits);
-      const str = plan === "Basic" ? "Unlimited credits" : serverCredits.toLocaleString();
+      const str = serverCredits.toLocaleString();
       setCredits(str);
       syncLocalState(plan, str, serverCredits);
 
-      if (plan !== "Basic" && serverCredits <= 0) {
+      if (resetAt) setFreeCreditsResetAt(resetAt);
+
+      if (serverCredits <= 0) {
         setShowOutOfCreditsModal(true);
-        window.dispatchEvent(
-          new CustomEvent("aisaas:notify", {
-            detail: {
-              title: "Credits Depleted ⚠️",
-              message: "You have used all monthly credits. Upgrade your plan to continue creating.",
-              iconName: "CreditCard",
-              color: "#f87171",
-            },
-          })
-        );
+        if (plan !== "Basic") {
+          window.dispatchEvent(
+            new CustomEvent("aisaas:notify", {
+              detail: {
+                title: "Credits Depleted ⚠️",
+                message: "You have used all monthly credits. Upgrade your plan to continue creating.",
+                iconName: "CreditCard",
+                color: "#f87171",
+              },
+            })
+          );
+        }
       }
     }
   };
@@ -394,6 +399,8 @@ export function UsageProvider({ children }) {
         showOutOfCreditsModal,
         setShowOutOfCreditsModal,
         openOutOfCreditsModal,
+        freeCreditsResetAt,
+        setFreeCreditsResetAt,
       }}
     >
       {children}

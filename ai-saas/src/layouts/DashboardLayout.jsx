@@ -36,6 +36,7 @@ export default function DashboardLayout() {
     credits = "Unlimited credits",
     showOutOfCreditsModal,
     setShowOutOfCreditsModal,
+    freeCreditsResetAt,
   } = useUsage() || {};
   const {
     notifications,
@@ -741,6 +742,7 @@ export default function DashboardLayout() {
       <OutOfCreditsModal
         isOpen={Boolean(showOutOfCreditsModal)}
         onClose={() => setShowOutOfCreditsModal?.(false)}
+        freeCreditsResetAt={freeCreditsResetAt}
       />
     </div>
   );

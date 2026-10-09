@@ -36,6 +36,7 @@ export default function ImageGenerator() {
     consumeCredits,
     updateCreditsFromServer,
     openOutOfCreditsModal,
+    setFreeCreditsResetAt,
   } = useUsage() || {};
 
   useEffect(() => {
@@ -85,10 +86,13 @@ export default function ImageGenerator() {
         setImageUrl(data.image);
         consumeCredits?.(20);
         if (typeof data.remainingCredits === "number") {
-          updateCreditsFromServer?.(data.remainingCredits);
+          updateCreditsFromServer?.(data.remainingCredits, data.freeCreditsResetAt);
         }
       } else {
-        if (data.outOfCredits || res.status === 403) openOutOfCreditsModal?.();
+        if (data.outOfCredits || res.status === 403) {
+          if (data.freeCreditsResetAt) setFreeCreditsResetAt?.(data.freeCreditsResetAt);
+          openOutOfCreditsModal?.();
+        }
         setError(data.message || "Failed to generate image. Please try again.");
       }
     } catch (err) {

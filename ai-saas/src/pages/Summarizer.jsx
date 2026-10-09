@@ -16,6 +16,7 @@ export default function Summarizer() {
     consumeCredits,
     updateCreditsFromServer,
     openOutOfCreditsModal,
+    setFreeCreditsResetAt,
   } = useUsage() || {};
 
   const handleSummarize = async () => {
@@ -44,10 +45,11 @@ export default function Summarizer() {
         setSummary(data.summary);
         consumeCredits?.(5);
         if (typeof data.remainingCredits === "number") {
-          updateCreditsFromServer?.(data.remainingCredits);
+          updateCreditsFromServer?.(data.remainingCredits, data.freeCreditsResetAt);
         }
       } else {
         if (data.outOfCredits || res.status === 403) {
+          if (data.freeCreditsResetAt) setFreeCreditsResetAt?.(data.freeCreditsResetAt);
           openOutOfCreditsModal?.();
         }
         setSummary(`Error: ${data.message || "Failed to summarize"}`);

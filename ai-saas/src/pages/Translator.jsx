@@ -46,6 +46,7 @@ export default function Translator() {
     consumeCredits,
     updateCreditsFromServer,
     openOutOfCreditsModal,
+    setFreeCreditsResetAt,
   } = useUsage() || {};
 
   const handleTranslate = async () => {
@@ -74,10 +75,11 @@ export default function Translator() {
         setOutputText(data.translated);
         consumeCredits?.(5);
         if (typeof data.remainingCredits === "number") {
-          updateCreditsFromServer?.(data.remainingCredits);
+          updateCreditsFromServer?.(data.remainingCredits, data.freeCreditsResetAt);
         }
       } else {
         if (data.outOfCredits || res.status === 403) {
+          if (data.freeCreditsResetAt) setFreeCreditsResetAt?.(data.freeCreditsResetAt);
           openOutOfCreditsModal?.();
         }
         setOutputText(`Error: ${data.message || "Failed to translate"}`);
