@@ -97,7 +97,7 @@ export default function TextGenerator() {
           background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", fontSize: 12, color: "var(--text-secondary)"
         }}>
           <span style={{ color: plan === "Basic" ? "#6ee7b7" : "#c4b5fd", fontWeight: 600 }}>
-            {plan === "Basic" ? "🌱 Unlimited Free Generation" : `⚡ 5 credits / prompt`}
+            {plan === "Basic" ? "🌱 5 credits/day" : `⚡ 5 credits / prompt`}
           </span>
           {plan !== "Basic" && (
             <span style={{ color: "var(--text-muted)" }}>

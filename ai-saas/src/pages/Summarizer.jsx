@@ -93,7 +93,7 @@ export default function Summarizer() {
           background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", fontSize: 12, color: "var(--text-secondary)"
         }}>
           <span style={{ color: plan === "Basic" ? "#6ee7b7" : "#c4b5fd", fontWeight: 600 }}>
-            {plan === "Basic" ? "🌱 Unlimited Free Summaries" : `⚡ 5 credits / summary`}
+            {plan === "Basic" ? "🌱 5 credits/day" : `⚡ 5 credits / summary`}
           </span>
           {plan !== "Basic" && (
             <span style={{ color: "var(--text-muted)" }}>

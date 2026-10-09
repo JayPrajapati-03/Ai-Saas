@@ -138,7 +138,7 @@ export default function ImageGenerator() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", fontSize: 12, color: "var(--text-secondary)" }}>
           <span style={{ color: plan === "Basic" ? "#6ee7b7" : "#f9a8d4", fontWeight: 600 }}>
-            {plan === "Basic" ? "🌱 10 Images/day on Basic" : `⚡ 20 credits / image`}
+            {plan === "Basic" ? "🌱 20 credits/day" : `⚡ 20 credits / image`}
           </span>
           {plan !== "Basic" && (
             <span style={{ color: "var(--text-muted)" }}>

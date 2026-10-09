@@ -128,7 +128,7 @@ export default function Translator() {
           background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", fontSize: 12, color: "var(--text-secondary)"
         }}>
           <span style={{ color: plan === "Basic" ? "#6ee7b7" : "#fcd34d", fontWeight: 600 }}>
-            {plan === "Basic" ? "🌱 Unlimited Free Translations" : `⚡ 5 credits / translation`}
+            {plan === "Basic" ? "🌱 5 credits/day" : `⚡ 5 credits / translation`}
           </span>
           {plan !== "Basic" && (
             <span style={{ color: "var(--text-muted)" }}>
