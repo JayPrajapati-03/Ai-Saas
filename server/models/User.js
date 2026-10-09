@@ -61,6 +61,16 @@ const userSchema = new mongoose.Schema(
       default: Date.now,
     },
 
+    planExpiresAt: {
+      type: Date,
+      default: null,
+    },
+
+    cancelAtPeriodEnd: {
+      type: Boolean,
+      default: false,
+    },
+
     billingHistory: [
       {
         transactionId: { type: String, required: true },

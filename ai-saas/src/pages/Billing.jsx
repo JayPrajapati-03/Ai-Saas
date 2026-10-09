@@ -89,6 +89,8 @@ export default function Billing() {
     billingHistory,
     upgradePlan,
     switchToBasic,
+    planExpiresAt,
+    daysRemaining,
   } = useUsage();
 
   const location = useLocation();
@@ -188,12 +190,12 @@ export default function Billing() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Confirm downgrade back to Basic
+  // Confirm downgrade back to Basic — immediately removes the purchased plan
   const handleConfirmDowngrade = async () => {
     setShowDowngradeModal(false);
-    await switchToBasic();
+    const result = await switchToBasic();
     setSuccessBanner(
-      "🌱 Switched to Basic Plan! You now have unlimited free generations."
+      result?.message || "🌱 Switched to Basic Plan! You now have unlimited free generations."
     );
     setTimeout(() => setSuccessBanner(""), 8000);
   };
@@ -397,7 +399,7 @@ export default function Billing() {
           >
             {activePlan === "Basic"
               ? "Free tier · Unlimited generations included · Upgrade anytime"
-              : "Renews monthly · Full feature access unlocked · Downgrade to Basic anytime"}
+              : "Billed monthly · Switch to Basic anytime to cancel"}
           </p>
         </div>
 
@@ -436,7 +438,9 @@ export default function Billing() {
                 display: "block",
               }}
             >
-              Next monthly refill in 30 days
+              {daysRemaining !== null
+                ? `${daysRemaining} day${daysRemaining === 1 ? "" : "s"} remaining`
+                : "30 days / month"}
             </span>
           )}
         </div>
@@ -1290,9 +1294,10 @@ export default function Billing() {
                   marginBottom: 20,
                 }}
               >
-                Your active subscription will change to the free **Basic Plan**.
-                You will receive unlimited free generations, and your previous
-                payment history will remain saved.
+                Switching to Basic will <strong style={{ color: "#f87171" }}>immediately remove</strong> your{" "}
+                <strong style={{ color: "white" }}>{activePlan} Plan</strong>. You’ll get
+                unlimited free generations, but your remaining credits and paid features will
+                be gone. To use premium features again, you’ll need to purchase a plan.
               </p>
 
               <div style={{ display: "flex", gap: 10 }}>

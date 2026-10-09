@@ -5,7 +5,7 @@ import axios from "axios";
 export const getBillingStatus = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select(
-      "plan credits planStartDate billingHistory name email"
+      "plan credits planStartDate planExpiresAt billingHistory name email"
     );
 
     if (!user) {
@@ -16,6 +16,13 @@ export const getBillingStatus = async (req, res) => {
     const creditsDisplay =
       currentPlan === "Basic" ? "Unlimited credits" : user.credits;
 
+    // Days remaining in current paid period
+    let daysRemaining = null;
+    if (currentPlan !== "Basic" && user.planExpiresAt) {
+      const msLeft = new Date(user.planExpiresAt) - new Date();
+      daysRemaining = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
+    }
+
     res.json({
       success: true,
       subscription: {
@@ -23,6 +30,9 @@ export const getBillingStatus = async (req, res) => {
         credits: creditsDisplay,
         rawCredits: user.credits,
         planStartDate: user.planStartDate || user.createdAt,
+        planExpiresAt: user.planExpiresAt || null,
+        cancelAtPeriodEnd: false,
+        daysRemaining,
         billingHistory: user.billingHistory || [],
       },
     });
@@ -71,6 +81,10 @@ export const processCheckout = async (req, res) => {
           plan,
           credits: allocatedCredits,
           planStartDate: new Date(),
+          // Set expiry to exactly 30 days from now
+          planExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          // Clear any pending cancellation — user re-subscribed
+          cancelAtPeriodEnd: false,
         },
         $push: {
           billingHistory: {
@@ -86,6 +100,9 @@ export const processCheckout = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
+    const msLeft = new Date(updatedUser.planExpiresAt) - new Date();
+    const daysRemaining = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
+
     res.json({
       success: true,
       message: `🎉 Payment verified! Your ${plan} Plan is now active with ${allocatedCredits.toLocaleString()} credits.`,
@@ -94,6 +111,9 @@ export const processCheckout = async (req, res) => {
         credits: updatedUser.credits,
         rawCredits: updatedUser.credits,
         planStartDate: updatedUser.planStartDate,
+        planExpiresAt: updatedUser.planExpiresAt,
+        cancelAtPeriodEnd: false,
+        daysRemaining,
         transaction: newTransaction,
         billingHistory: updatedUser.billingHistory || [],
       },
@@ -107,12 +127,15 @@ export const processCheckout = async (req, res) => {
 // POST /api/billing/switch-basic
 export const switchToBasic = async (req, res) => {
   try {
+    // Immediately downgrade — purchased plan is removed right away
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
       {
         $set: {
           plan: "Basic",
           planStartDate: new Date(),
+          planExpiresAt: null,
+          cancelAtPeriodEnd: false,
         },
       },
       { new: true }
@@ -130,6 +153,9 @@ export const switchToBasic = async (req, res) => {
         credits: "Unlimited credits",
         rawCredits: updatedUser.credits,
         planStartDate: updatedUser.planStartDate,
+        planExpiresAt: null,
+        cancelAtPeriodEnd: false,
+        daysRemaining: null,
         billingHistory: updatedUser.billingHistory || [],
       },
     });

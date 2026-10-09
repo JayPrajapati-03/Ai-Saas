@@ -62,6 +62,10 @@ export function UsageProvider({ children }) {
     }
   });
 
+  const [planExpiresAt, setPlanExpiresAt] = useState(null);
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
+  const [daysRemaining, setDaysRemaining] = useState(null);
+
   const [loading, setLoading] = useState(false);
 
   const incrementUsage = () => {
@@ -175,6 +179,11 @@ export function UsageProvider({ children }) {
           setRawCredits(rawNum);
           setCredits(credStr);
 
+          // Expiry / cancellation state
+          setPlanExpiresAt(sub.planExpiresAt || null);
+          setCancelAtPeriodEnd(sub.cancelAtPeriodEnd || false);
+          setDaysRemaining(typeof sub.daysRemaining === "number" ? sub.daysRemaining : null);
+
           if (sub.billingHistory && Array.isArray(sub.billingHistory)) {
             setBillingHistory(sub.billingHistory);
             syncLocalState(currentPlan, credStr, rawNum, sub.billingHistory);
@@ -233,6 +242,10 @@ export function UsageProvider({ children }) {
           setPlan(targetPlan);
           setRawCredits(allocatedRaw);
           setCredits(allocatedCredits);
+          // New plan started — clear any cancellation state
+          setCancelAtPeriodEnd(false);
+          setPlanExpiresAt(data.subscription?.planExpiresAt || null);
+          setDaysRemaining(data.subscription?.daysRemaining ?? null);
           const historyList = data.subscription.billingHistory || [
             fallbackTransaction,
             ...billingHistory,
@@ -275,7 +288,7 @@ export function UsageProvider({ children }) {
     };
   };
 
-  // Downgrade / Switch to Basic Plan anytime (Free, No payment)
+  // Downgrade to Basic — immediately removes the purchased plan
   const switchToBasic = async () => {
     setLoading(true);
     const token = localStorage.getItem("token");
@@ -294,13 +307,16 @@ export function UsageProvider({ children }) {
           setPlan("Basic");
           setRawCredits(120);
           setCredits("Unlimited credits");
+          setCancelAtPeriodEnd(false);
+          setPlanExpiresAt(null);
+          setDaysRemaining(null);
           syncLocalState("Basic", "Unlimited credits", 120);
           setLoading(false);
           window.dispatchEvent(
             new CustomEvent("aisaas:notify", {
               detail: {
-                title: "Plan Changed: Basic 🌱",
-                message: "You switched to the Free Basic Plan. Unlimited standard generations active.",
+                title: "Switched to Basic 🌱",
+                message: "Your purchased plan has been removed. You now have unlimited free generations.",
                 iconName: "Sparkles",
                 color: "#6ee7b7",
               },
@@ -310,30 +326,20 @@ export function UsageProvider({ children }) {
         }
       }
     } catch (err) {
-      console.warn("Backend switch-basic failed, falling back to local update:", err);
+      console.warn("Backend switch-basic failed, using local fallback:", err);
     }
 
+    // Local fallback
     setPlan("Basic");
     setRawCredits(120);
     setCredits("Unlimited credits");
+    setCancelAtPeriodEnd(false);
+    setPlanExpiresAt(null);
+    setDaysRemaining(null);
     syncLocalState("Basic", "Unlimited credits", 120);
     setLoading(false);
 
-    window.dispatchEvent(
-      new CustomEvent("aisaas:notify", {
-        detail: {
-          title: "Plan Changed: Basic 🌱",
-          message: "You switched to the Free Basic Plan. Unlimited standard generations active.",
-          iconName: "Sparkles",
-          color: "#6ee7b7",
-        },
-      })
-    );
-
-    return {
-      success: true,
-      message: "Switched to Basic Plan. Enjoy unlimited free generation!",
-    };
+    return { success: true, message: "Switched to Basic Plan. Enjoy unlimited free generation!" };
   };
 
   return (
@@ -346,6 +352,9 @@ export function UsageProvider({ children }) {
         rawCredits,
         billingHistory,
         loading,
+        planExpiresAt,
+        cancelAtPeriodEnd,
+        daysRemaining,
         upgradePlan,
         switchToBasic,
         refreshBilling,
