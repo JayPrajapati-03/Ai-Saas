@@ -243,19 +243,28 @@ export default function DashboardHome() {
               justifyContent: "space-between",
               flexWrap: "wrap",
               gap: 12,
-              marginBottom: 10,
+              marginBottom: 16,
             }}
           >
-            <p
+            <div
               style={{
-                fontSize: 13,
-                color: "#c4b5fd",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 16px",
+                borderRadius: 999,
+                background: "rgba(124, 58, 237, 0.16)",
+                border: "1px solid rgba(167, 139, 250, 0.35)",
+                fontSize: 14.5,
+                color: "#ede9fe",
                 fontWeight: 600,
-                letterSpacing: "0.05em",
+                letterSpacing: "0.01em",
+                boxShadow: "0 2px 12px rgba(124, 58, 237, 0.18)",
               }}
             >
-              {getGreeting()}, welcome back 👋
-            </p>
+              <span>{getGreeting()}, welcome back</span>
+              <span style={{ fontSize: 16 }}>👋</span>
+            </div>
 
             {/* Active Plan Pill */}
             <div
