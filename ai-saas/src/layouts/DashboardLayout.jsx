@@ -443,7 +443,7 @@ export default function DashboardLayout() {
           {/* Page title derived from path */}
           <div>
             <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, color: "white" }}>
-              {visibleMenuItems.find(m => m.path.split("#")[0] === location.pathname)?.name || (isAdmin ? "Admin Portal" : "Dashboard")}
+              {visibleMenuItems.find(m => m.path === (location.pathname + location.hash))?.name || visibleMenuItems.find(m => m.path.split("#")[0] === location.pathname)?.name || (isAdmin ? "Admin Portal" : "Dashboard")}
             </h1>
             <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
               {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}

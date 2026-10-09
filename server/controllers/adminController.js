@@ -16,11 +16,11 @@ export const getDashboardStats = async (req, res) => {
         // 4. Translations (Count from History where type='translate')
         const translations = await History.countDocuments({ type: { $in: ["translate", "translator"] } });
 
-        // 5. Recent Users (Last 5)
-        const recentUsersData = await User.find({})
+        // 5. Users List (Up to 50 users for management)
+        const allUsersData = await User.find({})
             .sort({ createdAt: -1 })
-            .limit(5)
-            .select('name email createdAt plan');
+            .limit(50)
+            .select('name email createdAt plan credits role todayUsage');
 
         // 6. Usage Activity (Last 7 Days)
         const last7Days = new Date();
@@ -55,12 +55,15 @@ export const getDashboardStats = async (req, res) => {
             });
         }
 
-        // Format recent users
-        const recentUsers = recentUsersData.map(user => {
+        // Format users list
+        const usersList = allUsersData.map(user => {
             return {
+                id: user._id,
                 name: user.name,
                 email: user.email,
+                role: user.role || "user",
                 plan: user.plan || "Basic",
+                credits: user.credits ?? 120,
                 joined: user.createdAt
             };
         });
@@ -74,7 +77,8 @@ export const getDashboardStats = async (req, res) => {
                 translations
             },
             usageActivity,
-            recentUsers
+            recentUsers: usersList.slice(0, 5),
+            allUsers: usersList
         });
 
     } catch (error) {
