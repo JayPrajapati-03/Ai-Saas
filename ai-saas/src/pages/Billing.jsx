@@ -106,6 +106,13 @@ export default function Billing() {
   // Downgrade confirmation modal
   const [showDowngradeModal, setShowDowngradeModal] = useState(false);
 
+  // Payment History pagination
+  const PAGE_SIZE = 5;
+  const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => { setCurrentPage(1); }, [billingHistory.length]);
+  const totalPages = Math.max(1, Math.ceil(billingHistory.length / PAGE_SIZE));
+  const pagedHistory = billingHistory.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   // Handle direct Razorpay Hosted Page redirect via Payment Links
   const handleRedirectToHostedPage = async (plan) => {
     try {
@@ -821,7 +828,7 @@ export default function Billing() {
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {billingHistory.map((h, idx) => (
+              {pagedHistory.map((h, idx) => (
                 <div
                   key={h.id || h.transactionId || idx}
                   style={{
@@ -854,13 +861,7 @@ export default function Billing() {
                     </div>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <p
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 600,
-                            color: "white",
-                          }}
-                        >
+                        <p style={{ fontSize: 14, fontWeight: 600, color: "white" }}>
                           {h.plan}
                         </p>
                         <span
@@ -928,6 +929,63 @@ export default function Billing() {
                   </div>
                 </div>
               ))}
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginTop: 12,
+                    paddingTop: 12,
+                    borderTop: "1px solid rgba(255,255,255,0.07)",
+                  }}
+                >
+                  <button
+                    type="button"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((p) => p - 1)}
+                    style={{
+                      padding: "7px 16px",
+                      borderRadius: 9,
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      background: currentPage === 1 ? "transparent" : "rgba(124,58,237,0.15)",
+                      color: currentPage === 1 ? "var(--text-muted)" : "#c4b5fd",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: currentPage === 1 ? "default" : "pointer",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    ← Prev
+                  </button>
+
+                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                    Page <strong style={{ color: "white" }}>{currentPage}</strong> of{" "}
+                    <strong style={{ color: "white" }}>{totalPages}</strong>
+                  </span>
+
+                  <button
+                    type="button"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                    style={{
+                      padding: "7px 16px",
+                      borderRadius: 9,
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      background: currentPage === totalPages ? "transparent" : "rgba(124,58,237,0.15)",
+                      color: currentPage === totalPages ? "var(--text-muted)" : "#c4b5fd",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: currentPage === totalPages ? "default" : "pointer",
+                      transition: "all 0.2s",
+                    }}
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
