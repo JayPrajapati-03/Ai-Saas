@@ -89,6 +89,8 @@ export default function Billing() {
     billingHistory,
     upgradePlan,
     switchToBasic,
+    resumePlan,
+    purchasedPlan,
     planExpiresAt,
     daysRemaining,
   } = useUsage();
@@ -162,12 +164,29 @@ export default function Billing() {
     }, 1200);
   };
 
-  // Open checkout for a plan (Direct Razorpay Hosted Checkout — 100% clean console, official redirect)
+  // Open checkout / resume for a plan
   const handleSelectPlan = async (plan) => {
     if (plan.name === activePlan && (activePlan === "Basic" || rawCredits > 0)) return;
 
     if (plan.name === "Basic") {
       setShowDowngradeModal(true);
+      return;
+    }
+
+    // Check if plan has expired
+    const isPlanExpired = planExpiresAt
+      ? new Date() > new Date(planExpiresAt)
+      : (daysRemaining !== null && daysRemaining <= 0);
+
+    // If user is on Basic and this plan is their saved purchased plan — resume for free ONLY within validity!
+    if (activePlan === "Basic" && purchasedPlan === plan.name && !isPlanExpired) {
+      const result = await resumePlan();
+      if (result.success) {
+        setSuccessBanner(`⚡ ${plan.name} Plan resumed! ${daysRemaining ? `${daysRemaining} days remaining.` : ""}`);
+        setTimeout(() => setSuccessBanner(""), 8000);
+      } else {
+        setRazorpayError({ message: result?.message || "Plan validity has expired. Please purchase a new plan.", plan });
+      }
       return;
     }
 
@@ -405,8 +424,10 @@ export default function Billing() {
             }}
           >
             {activePlan === "Basic"
-              ? "Free tier · Unlimited generations included · Upgrade anytime"
-              : "Billed monthly · Switch to Basic anytime to cancel"}
+              ? purchasedPlan
+                ? `Free tier active · Your ${purchasedPlan} Plan is saved (${daysRemaining !== null ? `${daysRemaining} days left` : "Active"}) · Switch back anytime!`
+                : "Free tier · Unlimited generations included · Upgrade anytime"
+              : "Billed monthly · Switch to Basic anytime to save credits"}
           </p>
         </div>
 
@@ -436,7 +457,7 @@ export default function Billing() {
           >
             {credits}
           </div>
-          {activePlan !== "Basic" && (
+          {activePlan !== "Basic" ? (
             <span
               style={{
                 fontSize: 11,
@@ -449,7 +470,19 @@ export default function Billing() {
                 ? `${daysRemaining} day${daysRemaining === 1 ? "" : "s"} remaining`
                 : "30 days / month"}
             </span>
-          )}
+          ) : purchasedPlan ? (
+            <span
+              style={{
+                fontSize: 11,
+                color: "#6ee7b7",
+                marginTop: 6,
+                display: "block",
+                fontWeight: 600,
+              }}
+            >
+              Saved: {purchasedPlan} ({daysRemaining !== null ? `${daysRemaining}d left` : "Active"})
+            </span>
+          ) : null}
         </div>
       </motion.div>
 
@@ -543,8 +576,8 @@ export default function Billing() {
                   </div>
                 )}
 
-                {/* Active Pill */}
-                {isActive && (
+                {/* Active Pill or Saved Validity Pill */}
+                {isActive ? (
                   <div
                     style={{
                       position: "absolute",
@@ -561,7 +594,51 @@ export default function Billing() {
                   >
                     ACTIVE
                   </div>
-                )}
+                ) : activePlan === "Basic" && purchasedPlan === plan.name ? (
+                  (() => {
+                    const isPlanExpired = planExpiresAt
+                      ? new Date() > new Date(planExpiresAt)
+                      : (daysRemaining !== null && daysRemaining <= 0);
+                    return isPlanExpired ? (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 14,
+                          right: 14,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: "3px 10px",
+                          borderRadius: 999,
+                          background: "rgba(239,68,68,0.18)",
+                          color: "#f87171",
+                          border: "1px solid rgba(239,68,68,0.35)",
+                        }}
+                      >
+                        EXPIRED
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 14,
+                          right: 14,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: "3px 10px",
+                          borderRadius: 999,
+                          background: "linear-gradient(135deg, rgba(16,185,129,0.2), rgba(6,182,212,0.2))",
+                          color: "#6ee7b7",
+                          border: "1px solid rgba(16,185,129,0.4)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <Clock size={11} /> {daysRemaining !== null ? `${daysRemaining}d validity left` : "SAVED (ACTIVE)"}
+                      </div>
+                    );
+                  })()
+                ) : null}
 
                 <div
                   style={{
@@ -676,75 +753,112 @@ export default function Billing() {
                 </ul>
 
                 {/* Plan Action Button */}
-                <button
-                  type="button"
-                  onClick={() => handleSelectPlan(plan)}
-                  disabled={(isActive && (isBasic || rawCredits > 0)) || isRedirecting}
-                  style={{
-                    width: "100%",
-                    padding: "12px",
-                    borderRadius: 12,
-                    fontWeight: 700,
-                    fontSize: 14,
-                    cursor: (isActive && (isBasic || rawCredits > 0)) || isRedirecting ? "default" : "pointer",
-                    transition: "all 0.2s",
-                    border: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    ...(isActive
-                      ? rawCredits <= 0 && !isBasic
-                        ? {
-                            background: "linear-gradient(135deg,#f59e0b,#d97706)",
-                            color: "white",
-                            boxShadow: "0 4px 16px rgba(245,158,11,0.35)",
-                          }
-                        : {
-                            background: "rgba(16,185,129,0.15)",
-                            color: "#6ee7b7",
-                            border: "1px solid rgba(16,185,129,0.35)",
-                          }
-                      : isBasic
-                      ? {
-                          background: "rgba(16,185,129,0.12)",
-                          color: "#6ee7b7",
-                          border: "1px solid rgba(16,185,129,0.3)",
-                        }
-                      : {
-                          background:
-                            plan.color === "#c4b5fd"
-                              ? "linear-gradient(135deg,#7c3aed,#0891b2)"
-                              : "linear-gradient(135deg,#d97706,#b45309)",
-                          color: "white",
-                          boxShadow: `0 4px 16px ${plan.bg}`,
-                        }),
-                  }}
-                >
-                  {isActive ? (
-                    rawCredits <= 0 && !isBasic ? (
-                      <>
-                        <Sparkles size={15} /> Purchase Credits ({plan.price})
-                      </>
-                    ) : (
-                      <>
-                        <Check size={16} /> Current Plan
-                      </>
-                    )
-                  ) : isBasic ? (
-                    <>
-                      <RefreshCw size={15} /> Switch to Basic (Free)
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard size={15} /> Upgrade to {plan.name}
-                    </>
-                  )}
-                </button>
+                {(() => {
+                  const isPlanExpired = planExpiresAt
+                    ? new Date() > new Date(planExpiresAt)
+                    : (daysRemaining !== null && daysRemaining <= 0);
+                  const isResumable = activePlan === "Basic" && purchasedPlan === plan.name && !isPlanExpired;
+                  const isDisabled = (isActive && (isBasic || rawCredits > 0)) || isRedirecting;
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => handleSelectPlan(plan)}
+                      disabled={isDisabled}
+                      style={{
+                        width: "100%",
+                        padding: "12px",
+                        borderRadius: 12,
+                        fontWeight: 700,
+                        fontSize: 14,
+                        cursor: isDisabled ? "default" : "pointer",
+                        transition: "all 0.2s",
+                        border: "none",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        ...(isResumable
+                          ? {
+                              background: "linear-gradient(135deg,#059669,#0891b2)",
+                              color: "white",
+                              boxShadow: "0 4px 16px rgba(5,150,105,0.3)",
+                            }
+                          : isActive
+                          ? rawCredits <= 0 && !isBasic
+                            ? {
+                                background: "linear-gradient(135deg,#f59e0b,#d97706)",
+                                color: "white",
+                                boxShadow: "0 4px 16px rgba(245,158,11,0.35)",
+                              }
+                            : {
+                                background: "rgba(16,185,129,0.15)",
+                                color: "#6ee7b7",
+                                border: "1px solid rgba(16,185,129,0.35)",
+                              }
+                          : isBasic
+                          ? {
+                              background: "rgba(16,185,129,0.12)",
+                              color: "#6ee7b7",
+                              border: "1px solid rgba(16,185,129,0.3)",
+                            }
+                          : {
+                              background:
+                                plan.color === "#c4b5fd"
+                                  ? "linear-gradient(135deg,#7c3aed,#0891b2)"
+                                  : "linear-gradient(135deg,#d97706,#b45309)",
+                              color: "white",
+                              boxShadow: `0 4px 16px ${plan.bg}`,
+                            }),
+                      }}
+                    >
+                      {isResumable ? (
+                        <><RefreshCw size={15} /> Resume {plan.name} ({daysRemaining !== null ? `${daysRemaining}d left` : "Active"}) · Free</>
+                      ) : isActive ? (
+                        rawCredits <= 0 && !isBasic ? (
+                          <><Sparkles size={15} /> Purchase Credits ({plan.price})</>
+                        ) : (
+                          <><Check size={16} /> Current Plan</>
+                        )
+                      ) : isBasic ? (
+                        <><RefreshCw size={15} /> Switch to Basic (Free)</>
+                      ) : isPlanExpired && purchasedPlan === plan.name ? (
+                        <><CreditCard size={15} /> Renew {plan.name} ({plan.price})</>
+                      ) : (
+                        <><CreditCard size={15} /> Upgrade to {plan.name}</>
+                      )}
+                    </button>
+                  );
+                })()}
               </motion.div>
             );
           })}
         </div>
+
+        {/* Saved Plan Resume Banner */}
+        {activePlan === "Basic" && purchasedPlan && planExpiresAt && new Date() < new Date(planExpiresAt) && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              marginTop: 16,
+              padding: "14px 18px",
+              background: "linear-gradient(135deg, rgba(124,58,237,0.15), rgba(6,182,212,0.08))",
+              border: "1px solid rgba(124,58,237,0.35)",
+              borderRadius: 14,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              fontSize: 13,
+              color: "#c4b5fd",
+            }}
+          >
+            <ShieldCheck size={16} style={{ flexShrink: 0 }} />
+            <span>
+              <strong>{purchasedPlan} Plan is saved</strong> — Switch back anytime for free.
+              {daysRemaining !== null && ` (${daysRemaining} day${daysRemaining === 1 ? "" : "s"} remaining)`}
+            </span>
+          </motion.div>
+        )}
 
         {/* Billing Terms & Refund Policy Notice */}
         <div style={{
@@ -1348,14 +1462,18 @@ export default function Billing() {
                 style={{
                   fontSize: 13,
                   color: "var(--text-secondary)",
-                  lineHeight: 1.5,
+                  lineHeight: 1.6,
                   marginBottom: 20,
                 }}
               >
-                Switching to Basic will <strong style={{ color: "#f87171" }}>immediately remove</strong> your{" "}
-                <strong style={{ color: "white" }}>{activePlan} Plan</strong>. You’ll get
-                unlimited free generations, but your remaining credits and paid features will
-                be gone. To use premium features again, you’ll need to purchase a plan.
+                Switching to Basic gives you <strong>unlimited free generations</strong>.
+                <br />
+                <br />
+                <span style={{ color: "#34d399", fontWeight: 600, display: "block" }}>
+                  ✓ Your {activePlan} Plan is NOT deleted or lost.
+                </span>
+                Your plan and credits remain safely saved and valid. You can freely switch back to{" "}
+                <strong style={{ color: "white" }}>{activePlan} Plan</strong> anytime before it expires!
               </p>
 
               <div style={{ display: "flex", gap: 10 }}>

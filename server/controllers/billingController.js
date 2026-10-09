@@ -5,20 +5,30 @@ import axios from "axios";
 export const getBillingStatus = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select(
-      "plan credits planStartDate planExpiresAt billingHistory name email"
+      "plan credits planStartDate planExpiresAt purchasedPlan billingHistory name email"
     );
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+    // Auto-expire: if paid plan period ended, clear paid/purchased plan back to Basic
+    if (user.planExpiresAt && new Date() > new Date(user.planExpiresAt)) {
+      user.plan = "Basic";
+      user.purchasedPlan = null;
+      user.planExpiresAt = null;
+      await user.save();
+    } else if (user.plan && user.plan !== "Basic" && !user.purchasedPlan) {
+      // If user currently holds a paid plan, ensure purchasedPlan is recorded
+      user.purchasedPlan = user.plan;
+      if (!user.planExpiresAt) {
+        user.planExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      }
+      await user.save();
     }
 
     const currentPlan = user.plan || "Basic";
-    const creditsDisplay =
-      currentPlan === "Basic" ? "Unlimited credits" : user.credits;
+    const creditsDisplay = currentPlan === "Basic" ? "Unlimited credits" : user.credits;
 
-    // Days remaining in current paid period
     let daysRemaining = null;
-    if (currentPlan !== "Basic" && user.planExpiresAt) {
+    if (user.purchasedPlan && user.planExpiresAt) {
       const msLeft = new Date(user.planExpiresAt) - new Date();
       daysRemaining = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
     }
@@ -31,7 +41,7 @@ export const getBillingStatus = async (req, res) => {
         rawCredits: user.credits,
         planStartDate: user.planStartDate || user.createdAt,
         planExpiresAt: user.planExpiresAt || null,
-        cancelAtPeriodEnd: false,
+        purchasedPlan: user.purchasedPlan || null,
         daysRemaining,
         billingHistory: user.billingHistory || [],
       },
@@ -81,17 +91,11 @@ export const processCheckout = async (req, res) => {
           plan,
           credits: allocatedCredits,
           planStartDate: new Date(),
-          // Set expiry to exactly 30 days from now
           planExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          // Clear any pending cancellation — user re-subscribed
+          purchasedPlan: plan, // remember what was bought
           cancelAtPeriodEnd: false,
         },
-        $push: {
-          billingHistory: {
-            $each: [newTransaction],
-            $position: 0,
-          },
-        },
+        $push: { billingHistory: { $each: [newTransaction], $position: 0 } },
       },
       { new: true }
     );
@@ -112,7 +116,7 @@ export const processCheckout = async (req, res) => {
         rawCredits: updatedUser.credits,
         planStartDate: updatedUser.planStartDate,
         planExpiresAt: updatedUser.planExpiresAt,
-        cancelAtPeriodEnd: false,
+        purchasedPlan: updatedUser.purchasedPlan,
         daysRemaining,
         transaction: newTransaction,
         billingHistory: updatedUser.billingHistory || [],
@@ -125,42 +129,94 @@ export const processCheckout = async (req, res) => {
 };
 
 // POST /api/billing/switch-basic
+// Switches active plan to Basic but KEEPS purchasedPlan + planExpiresAt intact
 export const switchToBasic = async (req, res) => {
   try {
-    // Immediately downgrade — purchased plan is removed right away
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    const activePurchasedPlan = user.purchasedPlan || (user.plan && user.plan !== "Basic" ? user.plan : null);
+    const activeExpiresAt = user.planExpiresAt || (activePurchasedPlan ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null);
+
+    const daysRemaining = activeExpiresAt
+      ? Math.max(0, Math.ceil((new Date(activeExpiresAt) - new Date()) / (1000 * 60 * 60 * 24)))
+      : null;
+
+    const updateFields = { plan: "Basic" };
+    if (activePurchasedPlan) {
+      updateFields.purchasedPlan = activePurchasedPlan;
+      updateFields.planExpiresAt = activeExpiresAt;
+    }
+
     const updatedUser = await User.findByIdAndUpdate(
       req.user.id,
-      {
-        $set: {
-          plan: "Basic",
-          planStartDate: new Date(),
-          planExpiresAt: null,
-          cancelAtPeriodEnd: false,
-        },
-      },
+      { $set: updateFields },
       { new: true }
     );
 
-    if (!updatedUser) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
-
     res.json({
       success: true,
-      message: "Successfully switched to Basic Plan. Enjoy unlimited free generation!",
+      message: updatedUser.purchasedPlan && daysRemaining > 0
+        ? `Switched to Basic. Your ${updatedUser.purchasedPlan} Plan is saved — you can resume it anytime (${daysRemaining} day${daysRemaining === 1 ? "" : "s"} left).`
+        : "Successfully switched to Basic Plan. Enjoy unlimited free generation!",
       subscription: {
         plan: "Basic",
         credits: "Unlimited credits",
         rawCredits: updatedUser.credits,
         planStartDate: updatedUser.planStartDate,
-        planExpiresAt: null,
-        cancelAtPeriodEnd: false,
-        daysRemaining: null,
+        planExpiresAt: updatedUser.planExpiresAt || null,
+        purchasedPlan: updatedUser.purchasedPlan || null,
+        daysRemaining,
         billingHistory: updatedUser.billingHistory || [],
       },
     });
   } catch (error) {
     console.error("Switch to Basic Error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// POST /api/billing/resume-plan
+// Restores the purchased plan for free if still within validity
+export const resumePurchasedPlan = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    if (!user.purchasedPlan || !user.planExpiresAt) {
+      return res.status(400).json({ success: false, message: "No active purchased plan to resume." });
+    }
+
+    if (new Date() > new Date(user.planExpiresAt)) {
+      await User.findByIdAndUpdate(req.user.id, {
+        $set: { purchasedPlan: null, planExpiresAt: null },
+      });
+      return res.status(400).json({ success: false, message: "Your purchased plan has expired. Please purchase a new plan." });
+    }
+
+    const msLeft = new Date(user.planExpiresAt) - new Date();
+    const daysRemaining = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
+
+    await User.findByIdAndUpdate(req.user.id, {
+      $set: { plan: user.purchasedPlan },
+    });
+
+    res.json({
+      success: true,
+      message: `🎉 Resumed ${user.purchasedPlan} Plan! ${daysRemaining} day${daysRemaining === 1 ? "" : "s"} remaining.`,
+      subscription: {
+        plan: user.purchasedPlan,
+        credits: user.credits,
+        rawCredits: user.credits,
+        planStartDate: user.planStartDate,
+        planExpiresAt: user.planExpiresAt,
+        purchasedPlan: user.purchasedPlan,
+        daysRemaining,
+        billingHistory: user.billingHistory || [],
+      },
+    });
+  } catch (error) {
+    console.error("Resume Plan Error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

@@ -66,6 +66,13 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
+    // Tracks what paid plan the user has purchased (survives Basic switches)
+    purchasedPlan: {
+      type: String,
+      enum: ["Pro", "Ultimate", null],
+      default: null,
+    },
+
     cancelAtPeriodEnd: {
       type: Boolean,
       default: false,

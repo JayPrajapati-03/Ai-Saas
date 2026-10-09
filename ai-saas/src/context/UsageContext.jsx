@@ -65,6 +65,7 @@ export function UsageProvider({ children }) {
   const [planExpiresAt, setPlanExpiresAt] = useState(null);
   const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState(null);
+  const [purchasedPlan, setPurchasedPlan] = useState(null);
 
   const [loading, setLoading] = useState(false);
 
@@ -179,9 +180,9 @@ export function UsageProvider({ children }) {
           setRawCredits(rawNum);
           setCredits(credStr);
 
-          // Expiry / cancellation state
+          // Expiry / plan state
           setPlanExpiresAt(sub.planExpiresAt || null);
-          setCancelAtPeriodEnd(sub.cancelAtPeriodEnd || false);
+          setPurchasedPlan(sub.purchasedPlan || null);
           setDaysRemaining(typeof sub.daysRemaining === "number" ? sub.daysRemaining : null);
 
           if (sub.billingHistory && Array.isArray(sub.billingHistory)) {
@@ -288,58 +289,87 @@ export function UsageProvider({ children }) {
     };
   };
 
-  // Downgrade to Basic — immediately removes the purchased plan
+  // Switch to Basic — purchased plan is SAVED for free resume within validity
   const switchToBasic = async () => {
     setLoading(true);
     const token = localStorage.getItem("token");
-
     try {
       if (token) {
         const res = await fetch(`${API_URL}/api/billing/switch-basic`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
         if (res.ok && data.success) {
+          const sub = data.subscription;
           setPlan("Basic");
-          setRawCredits(120);
           setCredits("Unlimited credits");
-          setCancelAtPeriodEnd(false);
-          setPlanExpiresAt(null);
-          setDaysRemaining(null);
-          syncLocalState("Basic", "Unlimited credits", 120);
+          // Keep purchasedPlan + planExpiresAt so user can resume
+          setPurchasedPlan(sub.purchasedPlan || null);
+          setPlanExpiresAt(sub.planExpiresAt || null);
+          setDaysRemaining(sub.daysRemaining ?? null);
+          syncLocalState("Basic", "Unlimited credits", rawCredits);
           setLoading(false);
-          window.dispatchEvent(
-            new CustomEvent("aisaas:notify", {
-              detail: {
-                title: "Switched to Basic 🌱",
-                message: "Your purchased plan has been removed. You now have unlimited free generations.",
-                iconName: "Sparkles",
-                color: "#6ee7b7",
-              },
-            })
-          );
+          window.dispatchEvent(new CustomEvent("aisaas:notify", {
+            detail: {
+              title: "Switched to Basic 🌱",
+              message: sub.purchasedPlan
+                ? `${sub.purchasedPlan} Plan is saved. Resume anytime before it expires.`
+                : "Enjoy unlimited free generations.",
+              iconName: "Sparkles",
+              color: "#6ee7b7",
+            },
+          }));
           return { success: true, message: data.message };
         }
       }
     } catch (err) {
-      console.warn("Backend switch-basic failed, using local fallback:", err);
+      console.warn("switch-basic failed:", err);
     }
-
-    // Local fallback
     setPlan("Basic");
-    setRawCredits(120);
     setCredits("Unlimited credits");
-    setCancelAtPeriodEnd(false);
-    setPlanExpiresAt(null);
-    setDaysRemaining(null);
-    syncLocalState("Basic", "Unlimited credits", 120);
+    syncLocalState("Basic", "Unlimited credits", rawCredits);
     setLoading(false);
+    return { success: true, message: "Switched to Basic Plan." };
+  };
 
-    return { success: true, message: "Switched to Basic Plan. Enjoy unlimited free generation!" };
+  // Resume purchased plan for free within validity period
+  const resumePlan = async () => {
+    setLoading(true);
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`${API_URL}/api/billing/resume-plan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const sub = data.subscription;
+        setPlan(sub.plan);
+        setRawCredits(sub.rawCredits);
+        setCredits(sub.rawCredits.toLocaleString());
+        setPurchasedPlan(sub.purchasedPlan);
+        setPlanExpiresAt(sub.planExpiresAt);
+        setDaysRemaining(sub.daysRemaining);
+        syncLocalState(sub.plan, sub.rawCredits.toLocaleString(), sub.rawCredits);
+        setLoading(false);
+        window.dispatchEvent(new CustomEvent("aisaas:notify", {
+          detail: {
+            title: `${sub.plan} Plan Resumed ⚡`,
+            message: data.message,
+            iconName: "Zap",
+            color: sub.plan === "Ultimate" ? "#fcd34d" : "#c4b5fd",
+          },
+        }));
+        return { success: true, message: data.message };
+      }
+      refreshBilling();
+      setLoading(false);
+      return { success: false, message: data.message };
+    } catch (err) {
+      setLoading(false);
+      return { success: false, message: "Network error. Please try again." };
+    }
   };
 
   return (
@@ -353,10 +383,11 @@ export function UsageProvider({ children }) {
         billingHistory,
         loading,
         planExpiresAt,
-        cancelAtPeriodEnd,
+        purchasedPlan,
         daysRemaining,
         upgradePlan,
         switchToBasic,
+        resumePlan,
         refreshBilling,
         consumeCredits,
         updateCreditsFromServer,
