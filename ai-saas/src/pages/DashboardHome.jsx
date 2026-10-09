@@ -121,7 +121,7 @@ function getGreeting() {
 
 export default function DashboardHome() {
   const [userName, setUserName] = useState("User");
-  const { usageCount, plan, credits } = useUsage();
+  const { usageCount, plan, credits, rawCredits } = useUsage();
   const [stats, setStats] = useState(() => ({
     credits: "∞",
     todayUsage: 0,
