@@ -200,10 +200,10 @@ export default function Register() {
               </motion.button>
             </form>
 
-            <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>
-              By creating an account, you agree to our{" "}
-              <Link to="/terms" style={{ color: "#c4b5fd", textDecoration: "none", fontWeight: 500 }}>Terms of Service</Link>
-              {" "}and{" "}
+            <p style={{ textAlign: "center", marginTop: 18, fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.5 }}>
+              By signing up, you agree to our{" "}
+              <Link to="/terms" style={{ color: "#c4b5fd", textDecoration: "none", fontWeight: 500 }}>Terms</Link>
+              {" & "}
               <Link to="/privacy" style={{ color: "#c4b5fd", textDecoration: "none", fontWeight: 500 }}>Privacy Policy</Link>
             </p>
 
