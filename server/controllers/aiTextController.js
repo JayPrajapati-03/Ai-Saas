@@ -12,7 +12,7 @@ export const generateText = async (req, res) => {
       });
     }
 
-    const { prompt } = req.body;
+    const { prompt, tone = "Professional" } = req.body;
     const userId = req.user.id; // Assuming auth middleware sets req.user
 
     if (!prompt) {
@@ -37,6 +37,16 @@ export const generateText = async (req, res) => {
       });
     }
 
+    const toneInstructions = {
+      Professional: "Write in a professional, polished, authoritative, and business-appropriate tone.",
+      Creative: "Write in an expressive, imaginative, vivid, and story-driven tone.",
+      Casual: "Write in a casual, conversational, relaxed, and friendly everyday tone.",
+      Formal: "Write in a formal, well-structured, precise, and academically rigorous tone.",
+      Persuasive: "Write in a highly persuasive, compelling, inspiring, and action-oriented tone.",
+    };
+
+    const toneInstruction = toneInstructions[tone] || `Write in a ${tone} tone.`;
+
     const client = new OpenAI({
       baseURL: "https://openrouter.ai/api/v1",
       apiKey: process.env.OPENROUTER_API_KEY,
@@ -49,6 +59,10 @@ export const generateText = async (req, res) => {
     const completion = await client.chat.completions.create({
       model: "meta-llama/llama-3.1-70b-instruct",   // FREE & powerful
       messages: [
+        {
+          role: "system",
+          content: `You are an expert AI content writer. Adhere strictly to the requested tone: ${toneInstruction} Generate the content directly based on the user's prompt without preamble, conversational remarks, or metadata.`
+        },
         { role: "user", content: prompt }
       ],
       temperature: 0.7,
@@ -76,7 +90,7 @@ export const generateText = async (req, res) => {
     await History.create({
       user: userId,
       type: "text",
-      title: "AI Text Generated",
+      title: `AI Text (${tone})`,
       content: prompt, // Store the prompt
     });
 
@@ -84,6 +98,7 @@ export const generateText = async (req, res) => {
       success: true,
       output,
       remainingCredits: user.credits,
+      freeCreditsResetAt: creditResult.freeCreditsResetAt,
     });
 
   } catch (error) {
