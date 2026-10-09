@@ -4,13 +4,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, Sparkles, FileText, ImageIcon, Languages, Clock,
   CreditCard, Settings, Menu, X, ChevronRight, Cpu, LogOut, Bell,
-  CheckCheck, Trash2, Zap, Trophy, Shield
+  CheckCheck, Trash2, Zap, Trophy, Shield, BarChart3, Users, TrendingUp
 } from "lucide-react";
 import { useUsage } from "../context/UsageContext";
 import { useNotifications, getRelativeTime } from "../context/NotificationContext";
 import OutOfCreditsModal from "../components/OutOfCreditsModal";
 
-const menuItems = [
+// Regular user navigation items (consumer AI tools & billing)
+const userMenuItems = [
   { name: "Dashboard",       icon: Home,       path: "/app",                  color: "#c4b5fd" },
   { name: "Text Generator",  icon: Sparkles,   path: "/app/text-generator",   color: "#67e8f9" },
   { name: "Summarizer",      icon: FileText,   path: "/app/summarizer",        color: "#6ee7b7" },
@@ -18,7 +19,13 @@ const menuItems = [
   { name: "Translator",      icon: Languages,  path: "/app/translator",        color: "#fcd34d" },
   { name: "History",         icon: Clock,      path: "/app/history",           color: "#93c5fd" },
   { name: "Billing",         icon: CreditCard, path: "/app/billing",           color: "#86efac" },
-  { name: "Admin",           icon: Settings,   path: "/app/admin",             color: "#fda4af" },
+];
+
+// Dedicated Admin navigation items (platform management only)
+const adminMenuItems = [
+  { name: "Admin Overview",  icon: BarChart3,  path: "/app/admin",            color: "#fda4af" },
+  { name: "User Management", icon: Users,      path: "/app/admin#users",      color: "#c4b5fd" },
+  { name: "Platform Usage",  icon: TrendingUp, path: "/app/admin#activity",   color: "#67e8f9" },
 ];
 
 const notifIconMap = { Sparkles, Zap, ImageIcon, Bell, Trophy, Shield, CreditCard };
@@ -42,6 +49,17 @@ export default function DashboardLayout() {
   const [open, setOpen] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+
+  const isAdmin = (() => {
+    try {
+      const u = JSON.parse(localStorage.getItem("user") || "{}");
+      return u?.role === "admin";
+    } catch {
+      return false;
+    }
+  })();
+
+  const visibleMenuItems = isAdmin ? adminMenuItems : userMenuItems;
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -181,9 +199,11 @@ export default function DashboardLayout() {
             padding: "6px 10px",
           }}
         >
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            const isActive = item.path.includes("#")
+              ? (location.pathname + location.hash) === item.path
+              : location.pathname === item.path && !location.hash;
             return (
               <Link
                 key={item.path}
@@ -240,76 +260,115 @@ export default function DashboardLayout() {
           })}
         </nav>
 
-        {/* Sidebar Subscription Widget */}
+        {/* Sidebar Subscription / Admin Widget */}
         <AnimatePresence>
           {open ? (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.2 }}
-              style={{
-                flexShrink: 0,
-                margin: "8px 10px 12px",
-                padding: "12px 14px",
-                borderRadius: 14,
-                background: "linear-gradient(135deg, rgba(124,58,237,0.12), rgba(6,182,212,0.06))",
-                border: "1px solid rgba(124,58,237,0.25)",
-                boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase" }}>PLAN</span>
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: "2px 8px",
-                    borderRadius: 999,
-                    background: plan === "Ultimate" ? "rgba(245,158,11,0.2)" : plan === "Pro" ? "rgba(124,58,237,0.25)" : "rgba(16,185,129,0.2)",
-                    color: plan === "Ultimate" ? "#fcd34d" : plan === "Pro" ? "#c4b5fd" : "#6ee7b7",
-                    border: `1px solid ${plan === "Ultimate" ? "rgba(245,158,11,0.4)" : plan === "Pro" ? "rgba(124,58,237,0.4)" : "rgba(16,185,129,0.35)"}`,
-                  }}
-                >
-                  {plan}
-                </span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "white", fontWeight: 600, marginBottom: 10 }}>
-                <Zap size={13} color="#c4b5fd" style={{ flexShrink: 0 }} />
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{credits}</span>
-              </div>
-              <Link
-                to="/app/billing"
-                state={{ from: location.pathname }}
+            isAdmin ? (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                transition={{ duration: 0.2 }}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                  padding: "7px 0",
-                  borderRadius: 8,
-                  background: "linear-gradient(135deg, rgba(124,58,237,0.3), rgba(6,182,212,0.2))",
-                  border: "1px solid rgba(124,58,237,0.45)",
-                  color: "#ffffff",
-                  textDecoration: "none",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  transition: "all 0.2s ease",
-                  boxShadow: "0 2px 8px rgba(124,58,237,0.25)",
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = "linear-gradient(135deg, rgba(124,58,237,0.55), rgba(6,182,212,0.4))";
-                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(124,58,237,0.45)";
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = "linear-gradient(135deg, rgba(124,58,237,0.3), rgba(6,182,212,0.2))";
-                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(124,58,237,0.25)";
+                  flexShrink: 0,
+                  margin: "8px 10px 12px",
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  background: "linear-gradient(135deg, rgba(239,68,68,0.15), rgba(124,58,237,0.1))",
+                  border: "1px solid rgba(239,68,68,0.3)",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
                 }}
               >
-                <Sparkles size={12} color="#c4b5fd" />
-                <span>{plan === "Basic" ? "Upgrade Subscription" : "Manage Billing"}</span>
-              </Link>
-            </motion.div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase" }}>ROLE</span>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      padding: "2px 8px",
+                      borderRadius: 999,
+                      background: "rgba(239,68,68,0.25)",
+                      color: "#fca5a5",
+                      border: "1px solid rgba(239,68,68,0.45)",
+                    }}
+                  >
+                    ADMIN
+                  </span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "white", fontWeight: 600 }}>
+                  <Shield size={13} color="#fca5a5" style={{ flexShrink: 0 }} />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Platform Superadmin</span>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                transition={{ duration: 0.2 }}
+                style={{
+                  flexShrink: 0,
+                  margin: "8px 10px 12px",
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  background: "linear-gradient(135deg, rgba(124,58,237,0.12), rgba(6,182,212,0.06))",
+                  border: "1px solid rgba(124,58,237,0.25)",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase" }}>PLAN</span>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      padding: "2px 8px",
+                      borderRadius: 999,
+                      background: plan === "Ultimate" ? "rgba(245,158,11,0.2)" : plan === "Pro" ? "rgba(124,58,237,0.25)" : "rgba(16,185,129,0.2)",
+                      color: plan === "Ultimate" ? "#fcd34d" : plan === "Pro" ? "#c4b5fd" : "#6ee7b7",
+                      border: `1px solid ${plan === "Ultimate" ? "rgba(245,158,11,0.4)" : plan === "Pro" ? "rgba(124,58,237,0.4)" : "rgba(16,185,129,0.35)"}`,
+                    }}
+                  >
+                    {plan}
+                  </span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "white", fontWeight: 600, marginBottom: 10 }}>
+                  <Zap size={13} color="#c4b5fd" style={{ flexShrink: 0 }} />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{credits}</span>
+                </div>
+                <Link
+                  to="/app/billing"
+                  state={{ from: location.pathname }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    padding: "7px 0",
+                    borderRadius: 8,
+                    background: "linear-gradient(135deg, rgba(124,58,237,0.3), rgba(6,182,212,0.2))",
+                    border: "1px solid rgba(124,58,237,0.45)",
+                    color: "#ffffff",
+                    textDecoration: "none",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    transition: "all 0.2s ease",
+                    boxShadow: "0 2px 8px rgba(124,58,237,0.25)",
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = "linear-gradient(135deg, rgba(124,58,237,0.55), rgba(6,182,212,0.4))";
+                    e.currentTarget.style.boxShadow = "0 4px 14px rgba(124,58,237,0.45)";
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = "linear-gradient(135deg, rgba(124,58,237,0.3), rgba(6,182,212,0.2))";
+                    e.currentTarget.style.boxShadow = "0 2px 8px rgba(124,58,237,0.25)";
+                  }}
+                >
+                  <Sparkles size={12} color="#c4b5fd" />
+                  <span>{plan === "Basic" ? "Upgrade Subscription" : "Manage Billing"}</span>
+                </Link>
+              </motion.div>
+            )
           ) : (
             <motion.div
               initial={{ opacity: 0 }}
@@ -384,7 +443,7 @@ export default function DashboardLayout() {
           {/* Page title derived from path */}
           <div>
             <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, color: "white" }}>
-              {menuItems.find(m => m.path === location.pathname)?.name || "Dashboard"}
+              {visibleMenuItems.find(m => m.path.split("#")[0] === location.pathname)?.name || (isAdmin ? "Admin Portal" : "Dashboard")}
             </h1>
             <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
               {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
@@ -634,23 +693,55 @@ export default function DashboardLayout() {
                     <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                         <div style={{ fontWeight: 600, fontSize: 14, color: "white" }}>{getUserName()}</div>
-                        <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            padding: "2px 8px",
-                            borderRadius: 999,
-                            background: plan === "Ultimate" ? "rgba(245,158,11,0.2)" : plan === "Pro" ? "rgba(124,58,237,0.25)" : "rgba(16,185,129,0.18)",
-                            color: plan === "Ultimate" ? "#fcd34d" : plan === "Pro" ? "#c4b5fd" : "#6ee7b7",
-                            border: `1px solid ${plan === "Ultimate" ? "rgba(245,158,11,0.4)" : plan === "Pro" ? "rgba(124,58,237,0.4)" : "rgba(16,185,129,0.3)"}`,
-                          }}
-                        >
-                          {plan} Tier
-                        </span>
+                        {isAdmin ? (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: "2px 8px",
+                              borderRadius: 999,
+                              background: "rgba(239,68,68,0.2)",
+                              color: "#fca5a5",
+                              border: "1px solid rgba(239,68,68,0.4)",
+                            }}
+                          >
+                            ADMIN
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: "2px 8px",
+                              borderRadius: 999,
+                              background: plan === "Ultimate" ? "rgba(245,158,11,0.2)" : plan === "Pro" ? "rgba(124,58,237,0.25)" : "rgba(16,185,129,0.18)",
+                              color: plan === "Ultimate" ? "#fcd34d" : plan === "Pro" ? "#c4b5fd" : "#6ee7b7",
+                              border: `1px solid ${plan === "Ultimate" ? "rgba(245,158,11,0.4)" : plan === "Pro" ? "rgba(124,58,237,0.4)" : "rgba(16,185,129,0.3)"}`,
+                            }}
+                          >
+                            {plan} Tier
+                          </span>
+                        )}
                       </div>
                       <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getUserEmail()}</div>
                     </div>
                     <div style={{ padding: "8px" }}>
+                      {isAdmin && (
+                        <Link
+                          to="/app/admin"
+                          onClick={() => setMenuOpen(false)}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 8,
+                            padding: "10px 12px", borderRadius: 8, background: "none",
+                            color: "#fda4af", textDecoration: "none", fontSize: 13, fontWeight: 500,
+                            marginBottom: 4, transition: "background 0.15s",
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = "rgba(253,164,175,0.1)"}
+                          onMouseLeave={e => e.currentTarget.style.background = "none"}
+                        >
+                          <Settings size={15} /> Admin Dashboard
+                        </Link>
+                      )}
                       <button
                         type="button"
                         role="menuitem"

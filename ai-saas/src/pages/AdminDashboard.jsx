@@ -1,24 +1,43 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Users, BarChart3, ImageIcon, Languages, Settings, TrendingUp } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { API_URL } from "../config/api";
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const [statsData, setStatsData] = useState({
     totalUsers: 0, totalRequests: 0, imagesGenerated: 0, translations: 0, usageActivity: []
   });
   const [recentUsers, setRecentUsers] = useState([]);
 
   useEffect(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem("user") || "{}");
+      if (u?.role !== "admin") {
+        navigate("/app", { replace: true });
+        return;
+      }
+      setIsAuthorized(true);
+    } catch {
+      navigate("/app", { replace: true });
+      return;
+    }
+
     const fetchAdminStats = async () => {
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(`${API_URL}/api/admin/stats`, { headers: { Authorization: `Bearer ${token}` } });
+        if (res.status === 403 || res.status === 401) {
+          navigate("/app", { replace: true });
+          return;
+        }
         const data = await res.json();
         if (data.success) {
           setStatsData({ ...data.stats, usageActivity: data.usageActivity || [] });
-          setRecentUsers(data.recentUsers.map(u => ({
+          setRecentUsers((data.recentUsers || []).map(u => ({
             ...u,
             joined: new Date(u.joined).toLocaleString("en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
           })));
@@ -26,7 +45,9 @@ export default function AdminDashboard() {
       } catch { /* noop */ }
     };
     fetchAdminStats();
-  }, []);
+  }, [navigate]);
+
+  if (!isAuthorized) return null;
 
   const stats = [
     { title: "Total Users",       value: statsData.totalUsers.toLocaleString(),       icon: Users,      color: "#c4b5fd", bg: "rgba(124,58,237,0.15)", border: "rgba(124,58,237,0.35)", trend: "+12%" },
@@ -77,7 +98,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Usage Chart */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+      <motion.div id="activity" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
         style={{ padding: "24px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 18 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
           <div>
@@ -116,7 +137,7 @@ export default function AdminDashboard() {
       </motion.div>
 
       {/* Recent Users */}
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+      <motion.div id="users" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
         style={{ padding: "24px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 18 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
           <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 700 }}>Recent Users</h2>

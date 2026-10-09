@@ -1,10 +1,10 @@
 import express from "express";
 import { getDashboardStats } from "../controllers/adminController.js";
-import { protectRoute } from "../middlewares/authMiddleware.js";
+import { protectRoute, requireAdmin } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-// Apply auth middleware. In future, add admin role check middleware here.
-router.get("/stats", protectRoute, getDashboardStats);
+// Only authenticated admins can access admin dashboard stats
+router.get("/stats", protectRoute, requireAdmin, getDashboardStats);
 
 export default router;

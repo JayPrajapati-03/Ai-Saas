@@ -9,6 +9,11 @@ export const registerUser = async (req, res) => {
     if (!name || !email || !password)
       return res.status(400).json({ message: "All fields are required" });
 
+    const adminEmail = (process.env.ADMIN_EMAIL || "admin@aisaas.com").toLowerCase().trim();
+    if (email.toLowerCase().trim() === adminEmail) {
+      return res.status(400).json({ message: "This email is reserved for administration. Please sign in directly." });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser)
       return res.status(400).json({ message: "Email already exists" });
@@ -17,8 +22,9 @@ export const registerUser = async (req, res) => {
 
     const user = await User.create({
       name,
-      email,
+      email: email.toLowerCase().trim(),
       password: hashedPassword,
+      role: "user",
     });
 
     res.json({
@@ -38,7 +44,7 @@ export const loginUser = async (req, res) => {
     if (!email || !password)
       return res.status(400).json({ message: "Email and password required" });
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user)
       return res.status(400).json({ message: "User does not exist" });
 

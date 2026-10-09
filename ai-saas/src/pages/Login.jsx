@@ -35,7 +35,11 @@ export default function Login() {
       if (response.ok) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
-        navigate("/app");
+        if (data.user?.role === "admin") {
+          navigate("/app/admin");
+        } else {
+          navigate("/app");
+        }
       } else {
         if (data.message === "User does not exist") {
           setPopup({ show: true, message: "First need to register. Please sign up." });

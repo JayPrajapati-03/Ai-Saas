@@ -14,7 +14,7 @@ import {
   Check,
   Shield,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useUsage } from "../context/UsageContext";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -127,14 +127,20 @@ export default function DashboardHome() {
     userLevel: localStorage.getItem("userLevel") || "Bronze",
   }));
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     try {
       const u = JSON.parse(localStorage.getItem("user") || "{}");
+      if (u?.role === "admin") {
+        navigate("/app/admin", { replace: true });
+        return;
+      }
       if (u.name) setUserName(u.name);
     } catch {
       /* noop */
     }
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     const fetchStats = async () => {
