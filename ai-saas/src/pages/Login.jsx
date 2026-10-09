@@ -35,6 +35,10 @@ export default function Login() {
       if (response.ok) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
+        if (data.user?.userLevel) {
+          localStorage.setItem("userLevel", data.user.userLevel);
+          localStorage.setItem(`aisaas_celebrated_level_${data.user.id || data.user.email}`, data.user.userLevel);
+        }
         if (data.user?.role === "admin") {
           navigate("/app/admin");
         } else {

@@ -80,6 +80,7 @@ export default function DashboardLayout() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("userLevel");
     navigate("/login");
   };
 
@@ -317,56 +318,25 @@ export default function DashboardLayout() {
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase" }}>PLAN</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase" }}>ROLE</span>
                   <span
                     style={{
                       fontSize: 10,
                       fontWeight: 700,
                       padding: "2px 8px",
                       borderRadius: 999,
-                      background: plan === "Ultimate" ? "rgba(245,158,11,0.2)" : plan === "Pro" ? "rgba(124,58,237,0.25)" : "rgba(16,185,129,0.2)",
-                      color: plan === "Ultimate" ? "#fcd34d" : plan === "Pro" ? "#c4b5fd" : "#6ee7b7",
-                      border: `1px solid ${plan === "Ultimate" ? "rgba(245,158,11,0.4)" : plan === "Pro" ? "rgba(124,58,237,0.4)" : "rgba(16,185,129,0.35)"}`,
+                      background: "rgba(124,58,237,0.25)",
+                      color: "#c4b5fd",
+                      border: "1px solid rgba(124,58,237,0.45)",
                     }}
                   >
-                    {plan}
+                    USER
                   </span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "white", fontWeight: 600, marginBottom: 10 }}>
-                  <Zap size={13} color="#c4b5fd" style={{ flexShrink: 0 }} />
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{credits}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "white", fontWeight: 600 }}>
+                  <Users size={13} color="#c4b5fd" style={{ flexShrink: 0 }} />
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getUserName()}</span>
                 </div>
-                <Link
-                  to="/app/billing"
-                  state={{ from: location.pathname }}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 6,
-                    padding: "7px 0",
-                    borderRadius: 8,
-                    background: "linear-gradient(135deg, rgba(124,58,237,0.3), rgba(6,182,212,0.2))",
-                    border: "1px solid rgba(124,58,237,0.45)",
-                    color: "#ffffff",
-                    textDecoration: "none",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    transition: "all 0.2s ease",
-                    boxShadow: "0 2px 8px rgba(124,58,237,0.25)",
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.background = "linear-gradient(135deg, rgba(124,58,237,0.55), rgba(6,182,212,0.4))";
-                    e.currentTarget.style.boxShadow = "0 4px 14px rgba(124,58,237,0.45)";
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = "linear-gradient(135deg, rgba(124,58,237,0.3), rgba(6,182,212,0.2))";
-                    e.currentTarget.style.boxShadow = "0 2px 8px rgba(124,58,237,0.25)";
-                  }}
-                >
-                  <Sparkles size={12} color="#c4b5fd" />
-                  <span>{plan === "Basic" ? "Upgrade Subscription" : "Manage Billing"}</span>
-                </Link>
               </motion.div>
             )
           ) : (
@@ -381,34 +351,24 @@ export default function DashboardLayout() {
                 justifyContent: "center",
               }}
             >
-              <Link
-                to="/app/billing"
-                state={{ from: location.pathname }}
-                title={`${plan} Plan • ${credits}`}
+              <div
+                title={isAdmin ? `Admin • ${getUserName()}` : `User • ${getUserName()}`}
                 style={{
                   width: 40,
                   height: 40,
                   borderRadius: 10,
-                  background: "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(6,182,212,0.1))",
-                  border: "1px solid rgba(124,58,237,0.35)",
+                  background: isAdmin
+                    ? "linear-gradient(135deg, rgba(239,68,68,0.2), rgba(124,58,237,0.1))"
+                    : "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(6,182,212,0.1))",
+                  border: isAdmin ? "1px solid rgba(239,68,68,0.35)" : "1px solid rgba(124,58,237,0.35)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#c4b5fd",
-                  textDecoration: "none",
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = "linear-gradient(135deg, rgba(124,58,237,0.35), rgba(6,182,212,0.2))";
-                  e.currentTarget.style.transform = "scale(1.05)";
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(6,182,212,0.1))";
-                  e.currentTarget.style.transform = "scale(1)";
+                  color: isAdmin ? "#fca5a5" : "#c4b5fd",
                 }}
               >
-                <Zap size={18} color="#c4b5fd" />
-              </Link>
+                {isAdmin ? <Shield size={18} color="#fca5a5" /> : <Users size={18} color="#c4b5fd" />}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

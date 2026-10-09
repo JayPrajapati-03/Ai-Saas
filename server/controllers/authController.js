@@ -67,6 +67,7 @@ export const loginUser = async (req, res) => {
         email: user.email,
         role: user.role,
         plan: user.plan || "Basic",
+        userLevel: user.userLevel || "Bronze",
       },
     });
   } catch (error) {

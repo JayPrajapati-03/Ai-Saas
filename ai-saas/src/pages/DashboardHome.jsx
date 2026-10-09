@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   Sparkles,
@@ -126,6 +126,7 @@ export default function DashboardHome() {
     todayUsage: 0,
     userLevel: localStorage.getItem("userLevel") || "Bronze",
   }));
+  const isInitialStatsLoad = useRef(true);
 
   const navigate = useNavigate();
 
@@ -156,31 +157,54 @@ export default function DashboardHome() {
         const data = await res.json();
         if (data.success && data.stats) {
           const fetchedLevel = data.stats.userLevel;
-          const prevLevel = localStorage.getItem("userLevel");
-
-          if (fetchedLevel && prevLevel && fetchedLevel !== prevLevel) {
-            const levels = ["Bronze", "Silver", "Gold", "Platinum"];
-            if (levels.indexOf(fetchedLevel) > levels.indexOf(prevLevel)) {
-              toast.success(`🎉 You reached ${fetchedLevel} Level!`, {
-                position: "top-center",
-                autoClose: 5000,
-                theme: "dark",
-              });
-              window.dispatchEvent(
-                new CustomEvent("aisaas:notify", {
-                  detail: {
-                    title: `Rank Up: ${fetchedLevel} Level! 🏆`,
-                    message: `Congratulations! You unlocked ${fetchedLevel} Level with upgraded milestone badges.`,
-                    iconName: "Trophy",
-                    color: fetchedLevel === "Gold" ? "#ffd700" : fetchedLevel === "Platinum" ? "#e5e4e2" : "#c0c0c0",
-                  },
-                })
-              );
+          const currentUserId = (() => {
+            try {
+              const u = JSON.parse(localStorage.getItem("user") || "{}");
+              return u.id || u.email || "user";
+            } catch {
+              return "user";
             }
-          }
+          })();
+          const celebratedKey = `aisaas_celebrated_level_${currentUserId}`;
+          const alreadyCelebrated = localStorage.getItem(celebratedKey);
 
-          if (fetchedLevel) {
-            localStorage.setItem("userLevel", fetchedLevel);
+          // On initial mount / login: sync level silently without celebratory toast
+          if (isInitialStatsLoad.current) {
+            isInitialStatsLoad.current = false;
+            if (fetchedLevel) {
+              localStorage.setItem("userLevel", fetchedLevel);
+              localStorage.setItem(celebratedKey, fetchedLevel);
+            }
+          } else {
+            const prevLevel = localStorage.getItem("userLevel");
+            if (fetchedLevel && prevLevel && fetchedLevel !== prevLevel) {
+              const levels = ["Bronze", "Silver", "Gold", "Platinum"];
+              const isUpgrade = levels.indexOf(fetchedLevel) > levels.indexOf(prevLevel);
+              const isNotYetCelebrated = !alreadyCelebrated || levels.indexOf(fetchedLevel) > levels.indexOf(alreadyCelebrated);
+
+              if (isUpgrade && isNotYetCelebrated) {
+                toast.success(`🎉 You reached ${fetchedLevel} Level!`, {
+                  position: "top-center",
+                  autoClose: 5000,
+                  theme: "dark",
+                });
+                window.dispatchEvent(
+                  new CustomEvent("aisaas:notify", {
+                    detail: {
+                      title: `Rank Up: ${fetchedLevel} Level! 🏆`,
+                      message: `Congratulations! You unlocked ${fetchedLevel} Level with upgraded milestone badges.`,
+                      iconName: "Trophy",
+                      color: fetchedLevel === "Gold" ? "#ffd700" : fetchedLevel === "Platinum" ? "#e5e4e2" : "#c0c0c0",
+                    },
+                  })
+                );
+                localStorage.setItem(celebratedKey, fetchedLevel);
+              }
+            }
+
+            if (fetchedLevel) {
+              localStorage.setItem("userLevel", fetchedLevel);
+            }
           }
 
           if (data.stats.plan === "Basic" || data.stats.userLevel === "Bronze") {
