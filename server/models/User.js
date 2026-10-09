@@ -26,7 +26,12 @@ const userSchema = new mongoose.Schema(
 
     credits: {
       type: Number,
-      default: 120,
+      default: 50,
+    },
+
+    freeCreditsResetAt: {
+      type: Date,
+      default: null,
     },
 
     todayUsage: {

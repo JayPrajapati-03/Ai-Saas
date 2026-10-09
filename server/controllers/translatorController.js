@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import User from "../models/User.js";
 import History from "../models/History.js";
+import { deductCredits } from "../utils/creditHelper.js";
 
 export const translateText = async (req, res) => {
   try {
@@ -42,18 +43,16 @@ export const translateText = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Credits usage check for paid plans
+    // Credits check — works for both Basic (daily pool) and paid plans
     const translateCost = 5;
-    if (user.plan && user.plan !== "Basic") {
-      if ((user.credits || 0) < translateCost) {
-        return res.status(403).json({
-          success: false,
-          outOfCredits: true,
-          message: "You have 0 credits remaining. Please purchase credits again on the Billing page to continue translating.",
-          remainingCredits: user.credits || 0,
-        });
-      }
-      user.credits = Math.max(0, (user.credits || 0) - translateCost);
+    const creditResult = await deductCredits(user, translateCost);
+    if (!creditResult.success) {
+      return res.status(403).json({
+        success: false,
+        outOfCredits: true,
+        message: creditResult.message,
+        remainingCredits: creditResult.remainingCredits,
+      });
     }
 
     const completion = await client.chat.completions.create({
@@ -91,7 +90,7 @@ export const translateText = async (req, res) => {
     res.json({
       success: true,
       translated,
-      remainingCredits: user.credits,
+      remainingCredits: creditResult.remainingCredits,
     });
 
   } catch (error) {

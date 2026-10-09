@@ -2,6 +2,7 @@ import axios from "axios";
 import fs from "fs";
 import History from "../models/History.js";
 import User from "../models/User.js";
+import { deductCredits } from "../utils/creditHelper.js";
 
 // Helper to fetch binary image data and convert to base64
 async function fetchImageBuffer(url, timeoutMs = 9000) {
@@ -54,19 +55,17 @@ export const generateImage = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Credits usage check for paid plans (20 credits per image)
+    // Credits usage check (20 credits per image)
     const imageCost = 20;
-    if (user.plan && user.plan !== "Basic") {
-      if ((user.credits || 0) < imageCost) {
-        return res.status(403).json({
-          success: false,
-          outOfCredits: true,
-          message: "You do not have enough credits to generate an image (20 credits required). Please purchase credits again on the Billing page.",
-          remainingCredits: user.credits || 0,
-        });
-      }
-      // Deduct credits (save happens at the end with usage stats)
-      user.credits = Math.max(0, (user.credits || 0) - imageCost);
+    const creditResult = await deductCredits(user, imageCost);
+    if (!creditResult.success) {
+      return res.status(403).json({
+        success: false,
+        outOfCredits: true,
+        message: creditResult.message,
+        remainingCredits: creditResult.remainingCredits,
+        freeCreditsResetAt: creditResult.freeCreditsResetAt,
+      });
     }
 
     // ---------------------------------------------------------------

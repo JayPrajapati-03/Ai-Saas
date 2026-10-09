@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import User from "../models/User.js";
 import History from "../models/History.js";
+import { deductCredits } from "../utils/creditHelper.js";
 
 export const generateText = async (req, res) => {
   try {
@@ -23,18 +24,17 @@ export const generateText = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Credits usage check for paid plans
+    // Credits usage check (5 credits per generation)
     const textCost = 5;
-    if (user.plan && user.plan !== "Basic") {
-      if ((user.credits || 0) < textCost) {
-        return res.status(403).json({
-          success: false,
-          outOfCredits: true,
-          message: "You have 0 credits remaining. Please purchase credits again on the Billing page to continue generating text.",
-          remainingCredits: user.credits || 0,
-        });
-      }
-      user.credits = Math.max(0, (user.credits || 0) - textCost);
+    const creditResult = await deductCredits(user, textCost);
+    if (!creditResult.success) {
+      return res.status(403).json({
+        success: false,
+        outOfCredits: true,
+        message: creditResult.message,
+        remainingCredits: creditResult.remainingCredits,
+        freeCreditsResetAt: creditResult.freeCreditsResetAt,
+      });
     }
 
     const client = new OpenAI({

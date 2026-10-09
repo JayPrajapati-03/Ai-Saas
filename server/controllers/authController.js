@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { checkAndResetDailyCredits } from "../utils/creditHelper.js";
 
 export const registerUser = async (req, res) => {
   try {
@@ -78,16 +79,17 @@ export const loginUser = async (req, res) => {
 export const getUserStats = async (req, res) => {
   try {
     let user = await User.findById(req.user.id).select(
-      "credits todayUsage userLevel totalUsage lastActiveDate plan planStartDate billingHistory"
+      "credits todayUsage userLevel totalUsage lastActiveDate plan planStartDate billingHistory freeCreditsResetAt"
     );
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Check for daily reset
+    // Check and trigger daily free credits reset if 24h passed
+    await checkAndResetDailyCredits(user);
+
+    // Check for daily usage reset
     const now = new Date();
     const lastActive = new Date(user.lastActiveDate);
 
-    // Simple check: are they on different calendar days?
-    // We compare Year, Month, Date
     const isNewDay =
       now.getFullYear() !== lastActive.getFullYear() ||
       now.getMonth() !== lastActive.getMonth() ||
@@ -100,15 +102,14 @@ export const getUserStats = async (req, res) => {
     }
 
     const currentPlan = user.plan || "Basic";
-    const creditsValue =
-      currentPlan === "Basic" ? "∞" : user.credits;
 
     res.json({
       success: true,
       stats: {
         plan: currentPlan,
-        credits: creditsValue,
-        rawCredits: user.credits,
+        credits: user.credits ?? 50,
+        rawCredits: user.credits ?? 50,
+        freeCreditsResetAt: user.freeCreditsResetAt || null,
         todayUsage: user.todayUsage,
         userLevel: user.userLevel,
         totalUsage: user.totalUsage || 0,

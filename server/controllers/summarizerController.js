@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import User from "../models/User.js";
 import History from "../models/History.js";
+import { deductCredits } from "../utils/creditHelper.js";
 
 export const summarizeText = async (req, res) => {
   try {
@@ -35,18 +36,16 @@ export const summarizeText = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Credits usage check for paid plans
+    // Credits check — works for both Basic (daily pool) and paid plans
     const summaryCost = 5;
-    if (user.plan && user.plan !== "Basic") {
-      if ((user.credits || 0) < summaryCost) {
-        return res.status(403).json({
-          success: false,
-          outOfCredits: true,
-          message: "You have 0 credits remaining. Please purchase credits again on the Billing page to continue summarizing.",
-          remainingCredits: user.credits || 0,
-        });
-      }
-      user.credits = Math.max(0, (user.credits || 0) - summaryCost);
+    const creditResult = await deductCredits(user, summaryCost);
+    if (!creditResult.success) {
+      return res.status(403).json({
+        success: false,
+        outOfCredits: true,
+        message: creditResult.message,
+        remainingCredits: creditResult.remainingCredits,
+      });
     }
 
     const completion = await client.chat.completions.create({
@@ -68,7 +67,7 @@ export const summarizeText = async (req, res) => {
 
     const output = completion.choices[0].message.content;
 
-    // Increment usage
+    // Increment usage (user already saved inside deductCredits)
     user.todayUsage = (user.todayUsage || 0) + 1;
     user.totalUsage = (user.totalUsage || 0) + 1;
     await user.save();
@@ -84,7 +83,7 @@ export const summarizeText = async (req, res) => {
     res.json({
       success: true,
       summary: output,
-      remainingCredits: user.credits,
+      remainingCredits: creditResult.remainingCredits,
     });
 
   } catch (error) {

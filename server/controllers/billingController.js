@@ -1,13 +1,17 @@
 import User from "../models/User.js";
 import axios from "axios";
+import { checkAndResetDailyCredits } from "../utils/creditHelper.js";
 
 // GET /api/billing/status
 export const getBillingStatus = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select(
-      "plan credits planStartDate planExpiresAt purchasedPlan billingHistory name email"
+      "plan credits planStartDate planExpiresAt purchasedPlan billingHistory name email freeCreditsResetAt"
     );
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    // Check daily free credits reset for Basic plan
+    await checkAndResetDailyCredits(user);
 
     // Auto-expire: if paid plan period ended, clear paid/purchased plan back to Basic
     if (user.planExpiresAt && new Date() > new Date(user.planExpiresAt)) {
@@ -25,7 +29,7 @@ export const getBillingStatus = async (req, res) => {
     }
 
     const currentPlan = user.plan || "Basic";
-    const creditsDisplay = currentPlan === "Basic" ? "Unlimited credits" : user.credits;
+    const creditsDisplay = currentPlan === "Basic" ? `${user.credits ?? 50} credits / day` : user.credits;
 
     let daysRemaining = null;
     if (user.purchasedPlan && user.planExpiresAt) {
@@ -38,7 +42,8 @@ export const getBillingStatus = async (req, res) => {
       subscription: {
         plan: currentPlan,
         credits: creditsDisplay,
-        rawCredits: user.credits,
+        rawCredits: user.credits ?? 50,
+        freeCreditsResetAt: user.freeCreditsResetAt || null,
         planStartDate: user.planStartDate || user.createdAt,
         planExpiresAt: user.planExpiresAt || null,
         purchasedPlan: user.purchasedPlan || null,
@@ -158,11 +163,12 @@ export const switchToBasic = async (req, res) => {
       success: true,
       message: updatedUser.purchasedPlan && daysRemaining > 0
         ? `Switched to Basic. Your ${updatedUser.purchasedPlan} Plan is saved — you can resume it anytime (${daysRemaining} day${daysRemaining === 1 ? "" : "s"} left).`
-        : "Successfully switched to Basic Plan. Enjoy unlimited free generation!",
+        : "Successfully switched to Basic Plan (50 credits/day).",
       subscription: {
         plan: "Basic",
-        credits: "Unlimited credits",
-        rawCredits: updatedUser.credits,
+        credits: `${updatedUser.credits ?? 50} credits / day`,
+        rawCredits: updatedUser.credits ?? 50,
+        freeCreditsResetAt: updatedUser.freeCreditsResetAt || null,
         planStartDate: updatedUser.planStartDate,
         planExpiresAt: updatedUser.planExpiresAt || null,
         purchasedPlan: updatedUser.purchasedPlan || null,
