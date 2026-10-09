@@ -90,7 +90,7 @@ export default function History() {
         </div>
         <div style={{ padding: "8px 16px", background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10 }}>
           <span style={{ fontSize: 12, color: "var(--text-muted)" }}>Total: </span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: "white", fontFamily: "var(--font-heading)" }}>{historyData.length}</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", fontFamily: "var(--font-heading)" }}>{historyData.length}</span>
           <span style={{ fontSize: 12, color: "var(--text-muted)" }}> records</span>
         </div>
       </motion.div>
@@ -185,7 +185,7 @@ export default function History() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <h3 style={{ fontSize: 14, fontWeight: 600, color: "white" }}>{item.title}</h3>
+                    <h3 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{item.title}</h3>
                     <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}`, textTransform: "capitalize" }}>{item.type}</span>
                   </div>
                   <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
@@ -215,7 +215,7 @@ export default function History() {
             gap: 12,
           }}>
           <div style={{ fontSize: 13, color: "var(--text-secondary)", justifySelf: "start" }}>
-            Showing <strong style={{ color: "white" }}>{startIndex + 1}</strong> – <strong style={{ color: "white" }}>{endIndex}</strong> of <strong style={{ color: "white" }}>{totalItems}</strong>
+            Showing <strong style={{ color: "var(--text-primary)" }}>{startIndex + 1}</strong> – <strong style={{ color: "var(--text-primary)" }}>{endIndex}</strong> of <strong style={{ color: "var(--text-primary)" }}>{totalItems}</strong>
           </div>
           {totalPages > 1 ? (
             <div style={{ display: "flex", alignItems: "center", justifySelf: "center", gap: 6 }}>

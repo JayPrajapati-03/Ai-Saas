@@ -262,7 +262,7 @@ export default function Billing() {
               >
                 <CheckCircle2 size={18} />
               </div>
-              <span style={{ fontSize: 14, fontWeight: 600, color: "white" }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>
                 {successBanner}
               </span>
             </div>
@@ -1076,8 +1076,8 @@ export default function Billing() {
                   </button>
 
                   <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                    Page <strong style={{ color: "white" }}>{currentPage}</strong> of{" "}
-                    <strong style={{ color: "white" }}>{totalPages}</strong>
+                    Page <strong style={{ color: "var(--text-primary)" }}>{currentPage}</strong> of{" "}
+                    <strong style={{ color: "var(--text-primary)" }}>{totalPages}</strong>
                   </span>
 
                   <button

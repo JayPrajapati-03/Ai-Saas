@@ -656,7 +656,7 @@ export default function DashboardHome() {
             <PlanIcon size={18} />
           </div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "white" }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>
               Active Tier Perks: {currentPlanConfig.name}
             </div>
             <div
@@ -800,7 +800,7 @@ export default function DashboardHome() {
                         fontFamily: "var(--font-heading)",
                         fontSize: 16,
                         fontWeight: 600,
-                        color: "white",
+                        color: "var(--text-primary)",
                         marginBottom: 6,
                       }}
                     >

@@ -4,10 +4,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Home, Sparkles, FileText, ImageIcon, Languages, Clock,
   CreditCard, Settings, Menu, X, ChevronRight, Cpu, LogOut, Bell,
-  CheckCheck, Trash2, Zap, Trophy, Shield, BarChart3, Users, TrendingUp
+  CheckCheck, Trash2, Zap, Trophy, Shield, BarChart3, Users, TrendingUp,
+  Sun, Moon
 } from "lucide-react";
 import { useUsage } from "../context/UsageContext";
 import { useNotifications, getRelativeTime } from "../context/NotificationContext";
+import { useTheme } from "../context/ThemeContext";
 import OutOfCreditsModal from "../components/OutOfCreditsModal";
 
 // Regular user navigation items (consumer AI tools & billing)
@@ -47,6 +49,8 @@ export default function DashboardLayout() {
     dismissNotification,
     toggleRead,
   } = useNotifications();
+
+  const { theme, isDark, toggleTheme } = useTheme();
 
   const [open, setOpen] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -128,6 +132,7 @@ export default function DashboardLayout() {
       overflow: "hidden",
       background: "var(--bg-deep)",
       fontFamily: "var(--font-body)",
+      color: "var(--text-primary)",
       position: "relative",
     }}>
       {/* Mesh bg */}
@@ -145,9 +150,9 @@ export default function DashboardLayout() {
           flexShrink: 0,
           display: "flex",
           flexDirection: "column",
-          background: "rgba(255,255,255,0.03)",
+          background: isDark ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.7)",
           backdropFilter: "blur(24px)",
-          borderRight: "1px solid rgba(255,255,255,0.07)",
+          borderRight: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.08)",
           padding: 0,
           position: "sticky",
           top: 0,
@@ -159,7 +164,7 @@ export default function DashboardLayout() {
         <div style={{
           display: "flex", alignItems: "center", justifyContent: open ? "space-between" : "center",
           padding: open ? "18px 18px 14px" : "18px 12px 14px",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
+          borderBottom: isDark ? "1px solid rgba(255,255,255,0.06)" : "1px solid rgba(0,0,0,0.06)",
           marginBottom: 6,
           flexShrink: 0,
         }}>
@@ -170,7 +175,7 @@ export default function DashboardLayout() {
                 <div style={{ width: 32, height: 32, borderRadius: 10, background: "linear-gradient(135deg,#7c3aed,#06b6d4)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <Cpu size={16} color="white" />
                 </div>
-                <span style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 700, whiteSpace: "nowrap" }}>
+                <span style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 700, whiteSpace: "nowrap", color: "var(--text-primary)" }}>
                   AI<span className="gradient-text">Panel</span>
                 </span>
               </motion.div>
@@ -180,9 +185,9 @@ export default function DashboardLayout() {
             onClick={() => setOpen(!open)}
             title={open ? "Collapse sidebar" : "Expand sidebar"}
             aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
-            style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--text-secondary)", transition: "all 0.2s", flexShrink: 0 }}
-            onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "white"; }}
-            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
+            style={{ width: 32, height: 32, borderRadius: 8, background: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--text-secondary)", transition: "all 0.2s", flexShrink: 0 }}
+            onMouseEnter={e => { e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)"; e.currentTarget.style.color = "var(--text-primary)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
           >
             <Menu size={16} />
           </button>
@@ -223,18 +228,33 @@ export default function DashboardLayout() {
                   position: "relative",
                   transition: "all 0.2s ease",
                   ...(isActive ? {
-                    background: "linear-gradient(135deg,rgba(124,58,237,0.25),rgba(6,182,212,0.1))",
-                    border: "1px solid rgba(124,58,237,0.4)",
-                    boxShadow: "0 4px 16px rgba(124,58,237,0.2)",
-                    color: "white",
+                    background: isDark
+                      ? "linear-gradient(135deg,rgba(124,58,237,0.25),rgba(6,182,212,0.1))"
+                      : "linear-gradient(135deg,rgba(124,58,237,0.15),rgba(6,182,212,0.08))",
+                    border: isDark ? "1px solid rgba(124,58,237,0.4)" : "1px solid rgba(124,58,237,0.3)",
+                    boxShadow: isDark ? "0 4px 16px rgba(124,58,237,0.2)" : "0 2px 10px rgba(124,58,237,0.1)",
+                    color: isDark ? "white" : "#6d28d9",
+                    fontWeight: 600,
                   } : {
                     background: "transparent",
                     border: "1px solid transparent",
                     color: "var(--text-secondary)",
                   }),
                 }}
-                onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "white"; }}}
-                onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.color = "var(--text-secondary)"; }}}
+                onMouseEnter={e => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)";
+                    e.currentTarget.style.borderColor = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
+                    e.currentTarget.style.color = isDark ? "white" : "var(--text-primary)";
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.borderColor = "transparent";
+                    e.currentTarget.style.color = "var(--text-secondary)";
+                  }
+                }}
               >
                 {/* Active indicator dot */}
                 {isActive && (
@@ -298,7 +318,7 @@ export default function DashboardLayout() {
                     ADMIN
                   </span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "white", fontWeight: 600 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-primary)", fontWeight: 600 }}>
                   <Shield size={13} color="#fca5a5" style={{ flexShrink: 0 }} />
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Platform Superadmin</span>
                 </div>
@@ -314,9 +334,11 @@ export default function DashboardLayout() {
                   margin: "8px 10px 12px",
                   padding: "12px 14px",
                   borderRadius: 14,
-                  background: "linear-gradient(135deg, rgba(124,58,237,0.12), rgba(6,182,212,0.06))",
-                  border: "1px solid rgba(124,58,237,0.25)",
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+                  background: isDark
+                    ? "linear-gradient(135deg, rgba(124,58,237,0.12), rgba(6,182,212,0.06))"
+                    : "linear-gradient(135deg, rgba(124,58,237,0.08), rgba(6,182,212,0.04))",
+                  border: isDark ? "1px solid rgba(124,58,237,0.25)" : "1px solid rgba(124,58,237,0.2)",
+                  boxShadow: isDark ? "0 8px 24px rgba(0,0,0,0.3)" : "0 4px 16px rgba(0,0,0,0.04)",
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
@@ -328,15 +350,15 @@ export default function DashboardLayout() {
                       padding: "2px 8px",
                       borderRadius: 999,
                       background: "rgba(124,58,237,0.25)",
-                      color: "#c4b5fd",
+                      color: isDark ? "#c4b5fd" : "#6d28d9",
                       border: "1px solid rgba(124,58,237,0.45)",
                     }}
                   >
                     USER
                   </span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "white", fontWeight: 600 }}>
-                  <Users size={13} color="#c4b5fd" style={{ flexShrink: 0 }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-primary)", fontWeight: 600 }}>
+                  <Users size={13} color={isDark ? "#c4b5fd" : "#7c3aed"} style={{ flexShrink: 0 }} />
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getUserName()}</span>
                 </div>
               </motion.div>
@@ -396,15 +418,15 @@ export default function DashboardLayout() {
           flexShrink: 0,
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "16px 28px",
-          background: "rgba(255,255,255,0.02)",
+          background: isDark ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.85)",
           backdropFilter: "blur(20px)",
-          borderBottom: "1px solid rgba(255,255,255,0.07)",
+          borderBottom: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.07)",
           position: "sticky", top: 0, zIndex: 10,
         }}>
 
           {/* Page title derived from path */}
           <div>
-            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, color: "white" }}>
+            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 600, color: "var(--text-primary)" }}>
               {visibleMenuItems.find(m => m.path === (location.pathname + location.hash))?.name || visibleMenuItems.find(m => m.path.split("#")[0] === location.pathname)?.name || (isAdmin ? "Admin Portal" : "Dashboard")}
             </h1>
             <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
@@ -413,6 +435,61 @@ export default function DashboardLayout() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {/* Theme Toggle Button (Dark / Light Mode) */}
+            <button
+              id="theme-toggle-button"
+              onClick={toggleTheme}
+              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              aria-label={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 10,
+                background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
+                border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.08)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                color: isDark ? "#fcd34d" : "#7c3aed",
+                transition: "all 0.2s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)";
+                e.currentTarget.style.transform = "scale(1.05)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)";
+                e.currentTarget.style.transform = "scale(1)";
+              }}
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {isDark ? (
+                  <motion.div
+                    key="sun"
+                    initial={{ rotate: -90, opacity: 0, scale: 0.6 }}
+                    animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                    exit={{ rotate: 90, opacity: 0, scale: 0.6 }}
+                    transition={{ duration: 0.2 }}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+                  >
+                    <Sun size={17} />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="moon"
+                    initial={{ rotate: 90, opacity: 0, scale: 0.6 }}
+                    animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                    exit={{ rotate: -90, opacity: 0, scale: 0.6 }}
+                    transition={{ duration: 0.2 }}
+                    style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+                  >
+                    <Moon size={17} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </button>
+
             {/* Notification Bell with interactive dropdown */}
             <div id="notif-container" style={{ position: "relative" }}>
               <button
@@ -463,22 +540,24 @@ export default function DashboardLayout() {
                       position: "absolute", right: 0, top: "calc(100% + 10px)",
                       width: 350, maxWidth: "calc(100vw - 32px)",
                       borderRadius: 16,
-                      background: "#0c1222",
-                      border: isAdmin ? "1px solid rgba(239,68,68,0.35)" : "1px solid rgba(124,58,237,0.35)",
+                      background: isDark ? "#0c1222" : "#ffffff",
+                      border: isAdmin
+                        ? "1px solid rgba(239,68,68,0.35)"
+                        : isDark ? "1px solid rgba(124,58,237,0.35)" : "1px solid rgba(0,0,0,0.12)",
                       boxShadow: isAdmin
                         ? "0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(239,68,68,0.15)"
-                        : "0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(124,58,237,0.15)",
+                        : isDark ? "0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(124,58,237,0.15)" : "0 20px 50px rgba(0,0,0,0.12)",
                       zIndex: 100, overflow: "hidden",
                     }}
                   >
                     {/* Header */}
                     <div style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between",
-                      padding: "16px 18px", borderBottom: "1px solid rgba(255,255,255,0.07)",
-                      background: "rgba(255,255,255,0.02)"
+                      padding: "16px 18px", borderBottom: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.07)",
+                      background: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"
                     }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15, color: "white" }}>
+                        <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15, color: "var(--text-primary)" }}>
                           {isAdmin ? "Admin Alerts" : "Notifications"}
                         </span>
                         {isAdmin && (
@@ -668,15 +747,17 @@ export default function DashboardLayout() {
                     style={{
                       position: "absolute", right: 0, top: "calc(100% + 10px)",
                       width: 220, borderRadius: 14,
-                      background: "#0f1629",
-                      border: "1px solid rgba(124,58,237,0.3)",
-                      boxShadow: "0 16px 48px rgba(0,0,0,0.5), 0 0 20px rgba(124,58,237,0.1)",
+                      background: isDark ? "#0f1629" : "#ffffff",
+                      border: isDark ? "1px solid rgba(124,58,237,0.3)" : "1px solid rgba(0,0,0,0.12)",
+                      boxShadow: isDark
+                        ? "0 16px 48px rgba(0,0,0,0.5), 0 0 20px rgba(124,58,237,0.1)"
+                        : "0 16px 48px rgba(0,0,0,0.12)",
                       zIndex: 100, overflow: "hidden",
                     }}
                   >
-                    <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                    <div style={{ padding: "16px 16px 12px", borderBottom: isDark ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(0,0,0,0.07)" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                        <div style={{ fontWeight: 600, fontSize: 14, color: "white" }}>{getUserName()}</div>
+                        <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text-primary)" }}>{getUserName()}</div>
                         {isAdmin ? (
                           <span
                             style={{
@@ -710,6 +791,33 @@ export default function DashboardLayout() {
                       <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getUserEmail()}</div>
                     </div>
                     <div style={{ padding: "8px" }}>
+                      {/* Theme toggle in dropdown */}
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={toggleTheme}
+                        style={{
+                          width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                          padding: "9px 12px", borderRadius: 8, background: "none", border: "none",
+                          color: "var(--text-secondary)", cursor: "pointer", fontSize: 13, fontWeight: 500,
+                          transition: "background 0.15s", marginBottom: 4,
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"}
+                        onMouseLeave={e => e.currentTarget.style.background = "none"}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          {isDark ? <Sun size={15} color="#fcd34d" /> : <Moon size={15} color="#7c3aed" />}
+                          <span>Theme</span>
+                        </div>
+                        <span style={{
+                          fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 6,
+                          background: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+                          color: "var(--text-primary)"
+                        }}>
+                          {isDark ? "Dark" : "Light"}
+                        </span>
+                      </button>
+
                       <button
                         type="button"
                         role="menuitem"

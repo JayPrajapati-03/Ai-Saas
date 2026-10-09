@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { Lock, Mail, ArrowRight, Eye, EyeOff, Cpu, Sparkles, FileText, Zap, Globe } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Lock, Mail, ArrowRight, Eye, EyeOff, Cpu, Sparkles, FileText, Zap, Globe, Sun, Moon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { API_URL } from "../config/api";
+import { useTheme } from "../context/ThemeContext";
 
 const features = [
   { icon: <Sparkles size={18} />, label: "AI Text Generator" },
@@ -18,6 +19,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [popup, setPopup] = useState({ show: false, message: "" });
   const navigate = useNavigate();
+  const { theme, isDark, toggleTheme } = useTheme();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -59,8 +61,58 @@ export default function Login() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", background: "var(--bg-deep)", fontFamily: "var(--font-body)" }}>
+    <div style={{ minHeight: "100vh", display: "flex", background: "var(--bg-deep)", fontFamily: "var(--font-body)", position: "relative" }}>
       <div className="mesh-bg" />
+
+      {/* Theme Toggle Button */}
+      <button
+        onClick={toggleTheme}
+        title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        aria-label="Toggle theme"
+        style={{
+          position: "absolute", top: 20, right: 24, zIndex: 50,
+          width: 38, height: 38, borderRadius: 10,
+          background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
+          border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.1)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "pointer", color: isDark ? "#fcd34d" : "#7c3aed",
+          transition: "all 0.2s ease",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)";
+          e.currentTarget.style.transform = "scale(1.05)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)";
+          e.currentTarget.style.transform = "scale(1)";
+        }}
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          {isDark ? (
+            <motion.div
+              key="sun"
+              initial={{ rotate: -90, opacity: 0, scale: 0.6 }}
+              animate={{ rotate: 0, opacity: 1, scale: 1 }}
+              exit={{ rotate: 90, opacity: 0, scale: 0.6 }}
+              transition={{ duration: 0.2 }}
+              style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+            >
+              <Sun size={17} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="moon"
+              initial={{ rotate: 90, opacity: 0, scale: 0.6 }}
+              animate={{ rotate: 0, opacity: 1, scale: 1 }}
+              exit={{ rotate: -90, opacity: 0, scale: 0.6 }}
+              transition={{ duration: 0.2 }}
+              style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+            >
+              <Moon size={17} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </button>
 
       {/* ── LEFT BRAND PANEL ── */}
       <div style={{

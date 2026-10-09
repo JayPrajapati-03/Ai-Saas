@@ -16,9 +16,12 @@ import DashboardLayout from './layouts/DashboardLayout'
 import { UsageProvider } from './context/UsageContext'
 import { NotificationProvider } from './context/NotificationContext'
 
+import { ThemeProvider } from './context/ThemeContext'
+
 function App() {
   return (
-    <Router>
+    <ThemeProvider>
+      <Router>
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
@@ -45,6 +48,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
+    </ThemeProvider>
   )
 }
 

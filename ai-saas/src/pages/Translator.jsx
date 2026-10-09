@@ -19,12 +19,12 @@ function LangSelect({ value, onChange }) {
     <select value={value} onChange={e => onChange(e.target.value)}
       style={{
         padding: "10px 14px", borderRadius: 10, fontSize: 14, fontWeight: 500,
-        background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)",
-        color: "white", outline: "none", cursor: "pointer", width: "100%",
+        background: "var(--bg-card)", border: "1px solid var(--border)",
+        color: "var(--text-primary)", outline: "none", cursor: "pointer", width: "100%",
         fontFamily: "var(--font-body)",
       }}>
       {languages.map(l => (
-        <option key={l.code} value={l.code} style={{ background: "#0f1629" }}>
+        <option key={l.code} value={l.code} style={{ background: "var(--bg-dark)", color: "var(--text-primary)" }}>
           {l.flag} {l.name}
         </option>
       ))}
