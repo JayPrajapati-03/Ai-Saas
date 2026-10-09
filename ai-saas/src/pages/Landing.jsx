@@ -4,7 +4,8 @@ import {
   ArrowRight, Sparkles, Zap, Shield, Brain, Globe, FileText,
   Star, CheckCircle2, Users, TrendingUp, ChevronRight, Cpu,
   Play, MousePointerClick, Layers, Command, ArrowUpRight,
-  ChevronDown, Menu, X,
+  ChevronDown, Menu, X, Twitter, Github, Linkedin, Youtube,
+  Mail, Send, ExternalLink, Heart,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -762,85 +763,208 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── CTA BANNER ── */}
-      <section className="landing-section">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="landing-cta-banner"
-        >
-          <div className="landing-cta-banner-bg" />
-          <div className="landing-cta-banner-content">
-            <motion.div
-              initial={{ scale: 0 }}
-              whileInView={{ scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ type: "spring", delay: 0.2 }}
-              className="landing-cta-banner-icon"
-            >
-              <Sparkles size={32} />
-            </motion.div>
-            <h2 className="landing-cta-title">
-              Ready to supercharge<br />your creative workflow?
-            </h2>
-            <p className="landing-cta-desc">
-              Join 10,000+ creators who use AISaaS to produce better work, faster.
-            </p>
-            <div className="landing-cta-actions">
-              <Link to="/register" className="landing-hero-cta-primary">
-                <span>Start Building for Free</span>
-                <ArrowRight size={18} />
-                <div className="landing-hero-cta-shine" />
-              </Link>
-            </div>
-          </div>
-        </motion.div>
-      </section>
+      {/* ════════════════════════════════════════════════════════
+          BOTTOM ZONE — dark panel: CTA banner + full footer
+          ════════════════════════════════════════════════════════ */}
+      <div className="landing-bottom-zone">
 
-      {/* ── FOOTER ── */}
-      <footer className="landing-footer">
-        <div className="landing-footer-top">
-          <div className="landing-footer-brand">
-            <div className="landing-logo">
-              <div className="landing-logo-icon">
-                <Cpu size={16} color="white" />
+        {/* ── CTA BANNER ── */}
+        <div className="landing-cta-wrap">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="landing-cta-banner"
+          >
+            <div className="landing-cta-banner-bg" />
+            <div className="landing-cta-banner-content">
+              <motion.div
+                initial={{ scale: 0 }}
+                whileInView={{ scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ type: "spring", delay: 0.2 }}
+                className="landing-cta-banner-icon"
+              >
+                <Sparkles size={32} />
+              </motion.div>
+              <h2 className="landing-cta-title">
+                Ready to supercharge<br />your creative workflow?
+              </h2>
+              <p className="landing-cta-desc">
+                Join 10,000+ creators who use AISaaS to produce better work, faster.
+              </p>
+              <div className="landing-cta-actions">
+                <Link to="/register" className="landing-hero-cta-primary">
+                  <span>Start Building for Free</span>
+                  <ArrowRight size={18} />
+                  <div className="landing-hero-cta-shine" />
+                </Link>
               </div>
-              <span className="landing-logo-text" style={{ fontSize: 18 }}>
-                AI<span className="gradient-text">SaaS</span>
-              </span>
             </div>
-            <p className="landing-footer-tagline">
-              The next-generation AI platform for modern creators.
-            </p>
-          </div>
-          <div className="landing-footer-links">
-            <div className="landing-footer-col">
-              <h4>Product</h4>
-              <a href="#features">Features</a>
-              <a href="#pricing">Pricing</a>
-              <Link to="/register">Get Started</Link>
-            </div>
-            <div className="landing-footer-col">
-              <h4>Company</h4>
-              <a href="#about">About</a>
-              <a href="#">Careers</a>
-              <a href="#">Blog</a>
-            </div>
-            <div className="landing-footer-col">
-              <h4>Legal</h4>
-              <a href="#">Privacy</a>
-              <a href="#">Terms</a>
-              <a href="#">Security</a>
-            </div>
-          </div>
+          </motion.div>
         </div>
-        <div className="landing-footer-bottom">
-          <p>© 2025 AISaaS. All rights reserved.</p>
-          <p>Made with ❤️ for creators everywhere</p>
-        </div>
-      </footer>
+
+        {/* ── FOOTER ── */}
+        <footer className="landing-footer">
+
+          {/* Glow separator line */}
+          <div className="landing-footer-glow-bar" />
+
+          {/* Main footer container */}
+          <div className="landing-footer-container">
+            <div className="landing-footer-grid">
+
+              {/* Col 1: Brand Info & Status */}
+              <div className="landing-footer-brand-col">
+                <Link to="/" style={{ textDecoration: "none" }}>
+                  <div className="landing-logo" style={{ marginBottom: 16 }}>
+                    <div className="landing-logo-icon">
+                      <Cpu size={16} color="white" />
+                    </div>
+                    <span className="landing-logo-text" style={{ fontSize: 18 }}>
+                      AI<span className="gradient-text">SaaS</span>
+                    </span>
+                    <span className="landing-footer-version-tag">v2.4</span>
+                  </div>
+                </Link>
+                <p className="landing-footer-tagline">
+                  The all-in-one AI creative engine. Generate high-converting copy, code, imagery, and audio workflows at scale.
+                </p>
+
+                {/* Status indicator */}
+                <div className="landing-footer-status-pill">
+                  <div className="landing-footer-status-dot" />
+                  <span>All Systems Operational</span>
+                </div>
+
+                {/* Social icons */}
+                <div className="landing-footer-socials">
+                  {[
+                    { icon: <Twitter size={15} />, label: "Twitter", href: "#" },
+                    { icon: <Github size={15} />, label: "GitHub", href: "#" },
+                    { icon: <Linkedin size={15} />, label: "LinkedIn", href: "#" },
+                    { icon: <Youtube size={15} />, label: "YouTube", href: "#" },
+                  ].map(({ icon, label, href }) => (
+                    <motion.a
+                      key={label}
+                      href={href}
+                      aria-label={label}
+                      className="landing-footer-social-btn"
+                      whileHover={{ scale: 1.12, y: -2 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {icon}
+                    </motion.a>
+                  ))}
+                </div>
+              </div>
+
+              {/* Col 2: Products */}
+              <div className="landing-footer-col">
+                <h4>Products</h4>
+                <a href="#features"><Sparkles size={12} />AI Content Writer</a>
+                <a href="#features"><Zap size={12} />Code Copilot</a>
+                <a href="#features"><Brain size={12} />Image Generator</a>
+                <a href="#features"><Cpu size={12} />Voice Transcriber</a>
+                <a href="#features"><FileText size={12} />Document Summary</a>
+                <Link to="/register"><ArrowUpRight size={12} />Prompt Studio</Link>
+              </div>
+
+              {/* Col 3: Solutions */}
+              <div className="landing-footer-col">
+                <h4>Solutions</h4>
+                <a href="#about"><Users size={12} />For Developers</a>
+                <a href="#about"><Sparkles size={12} />Content Creators</a>
+                <a href="#about"><TrendingUp size={12} />Marketing Teams</a>
+                <a href="#about"><Globe size={12} />Enterprise Teams</a>
+                <a href="#pricing"><Zap size={12} />Transparent Pricing</a>
+                <Link to="/register"><ArrowUpRight size={12} />API Platform</Link>
+              </div>
+
+              {/* Col 4: Resources */}
+              <div className="landing-footer-col">
+                <h4>Resources</h4>
+                <a href="#features"><FileText size={12} />Documentation</a>
+                <a href="#features"><Cpu size={12} />API Reference</a>
+                <a href="#about"><Users size={12} />Discord Community</a>
+                <a href="#about"><Sparkles size={12} />Guides & Tutorials</a>
+                <a href="#about"><TrendingUp size={12} />Changelog</a>
+                <a href="#about"><Shield size={12} />Security Center</a>
+              </div>
+
+              {/* Col 5: Company */}
+              <div className="landing-footer-col">
+                <h4>Company</h4>
+                <a href="#about"><Users size={12} />About Our Mission</a>
+                <a href="#about">
+                  <TrendingUp size={12} />Careers
+                  <span className="landing-footer-hiring-pill">Hiring</span>
+                </a>
+                <a href="#about"><FileText size={12} />Blog & Stories</a>
+                <a href="#about"><Globe size={12} />Press & Media</a>
+                <a href="#"><Shield size={12} />Privacy Policy</a>
+                <a href="#"><FileText size={12} />Terms of Service</a>
+              </div>
+
+              {/* Col 6: Stay Updated / Newsletter */}
+              <div className="landing-footer-newsletter-col">
+                <h4>Stay In The Loop</h4>
+                <p className="landing-footer-newsletter-desc">
+                  Join 25,000+ builders receiving weekly AI workflows, prompt tricks, and new feature drops.
+                </p>
+
+                <form className="landing-footer-newsletter-form" onSubmit={(e) => e.preventDefault()}>
+                  <div className="landing-footer-newsletter-input-wrap">
+                    <Mail size={15} className="landing-footer-newsletter-icon" />
+                    <input
+                      type="email"
+                      placeholder="name@company.com"
+                      className="landing-footer-newsletter-input"
+                    />
+                    <button className="landing-footer-newsletter-btn" aria-label="Subscribe">
+                      <Send size={13} />
+                    </button>
+                  </div>
+                </form>
+
+                <div className="landing-footer-newsletter-perks">
+                  <span><CheckCircle2 size={12} color="#10b981" /> No spam guarantee</span>
+                  <span><CheckCircle2 size={12} color="#10b981" /> Unsubscribe anytime</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Bottom copyright bar */}
+          <div className="landing-footer-bottom">
+            <div className="landing-footer-bottom-container">
+              <div className="landing-footer-bottom-left">
+                <p>© 2025 AISaaS Inc. All rights reserved.</p>
+              </div>
+
+              <div className="landing-footer-bottom-links">
+                <a href="#">Privacy</a>
+                <span className="landing-footer-dot">•</span>
+                <a href="#">Terms</a>
+                <span className="landing-footer-dot">•</span>
+                <a href="#">Security</a>
+                <span className="landing-footer-dot">•</span>
+                <a href="#">Cookies</a>
+                <span className="landing-footer-dot">•</span>
+                <a href="#">Status</a>
+              </div>
+
+              <p className="landing-footer-made-with">
+                Crafted with <Heart size={12} className="landing-footer-heart" /> for creators worldwide
+              </p>
+            </div>
+          </div>
+
+        </footer>
+      </div>
     </div>
   );
 }
+
