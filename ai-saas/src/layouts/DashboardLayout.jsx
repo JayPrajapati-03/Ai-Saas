@@ -748,22 +748,6 @@ export default function DashboardLayout() {
                       <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getUserEmail()}</div>
                     </div>
                     <div style={{ padding: "8px" }}>
-                      {isAdmin && (
-                        <Link
-                          to="/app/admin"
-                          onClick={() => setMenuOpen(false)}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 8,
-                            padding: "10px 12px", borderRadius: 8, background: "none",
-                            color: "#fda4af", textDecoration: "none", fontSize: 13, fontWeight: 500,
-                            marginBottom: 4, transition: "background 0.15s",
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.background = "rgba(253,164,175,0.1)"}
-                          onMouseLeave={e => e.currentTarget.style.background = "none"}
-                        >
-                          <Settings size={15} /> Admin Dashboard
-                        </Link>
-                      )}
                       <button
                         type="button"
                         role="menuitem"
