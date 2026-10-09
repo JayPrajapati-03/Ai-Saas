@@ -522,17 +522,6 @@ export default function Landing() {
 
       {/* ── HERO SECTION ── */}
       <section className="landing-hero">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="landing-hero-badge"
-        >
-          <div className="landing-hero-badge-dot" />
-          <span>Now in Public Beta — Try Free Today</span>
-          <ArrowRight size={13} />
-        </motion.div>
-
         <motion.h1
           className="landing-hero-heading"
           variants={headingVariants}
