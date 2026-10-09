@@ -1,74 +1,212 @@
-export const DAILY_FREE_CREDITS = 50;
+export const TOTAL_DAILY_FREE_CREDITS = 50;
+
+export const TOOL_LIMITS = {
+  text: {
+    name: "Text Generator",
+    dailyCredits: 10,
+    cost: 1,
+    unit: "prompt",
+  },
+  summarizer: {
+    name: "Summarizer",
+    dailyCredits: 10,
+    cost: 1,
+    unit: "summary",
+  },
+  translator: {
+    name: "Translator",
+    dailyCredits: 10,
+    cost: 1,
+    unit: "translation",
+  },
+  image: {
+    name: "Image Generator",
+    dailyCredits: 20,
+    cost: 5,
+    unit: "image",
+  },
+};
 
 /**
- * Checks if the user is on the Basic plan and if their 24-hour reset time has arrived.
- * If 24 hours have passed since credits were depleted, resets credits to 50.
- * Also initializes credits to 50 if user was undefined or had old unlimited values.
+ * Initializes and resets any tool credits whose 24-hour window has expired.
+ * Sums remaining credits to user.credits.
  */
-export async function checkAndResetDailyCredits(user) {
+export function ensureAndResetAllToolCredits(user) {
   if (!user || user.plan !== "Basic") return false;
 
+  if (!user.toolCredits) {
+    user.toolCredits = {};
+  }
+
   const now = new Date();
+  let modified = false;
 
-  // If a reset time was set and that time has arrived:
-  if (user.freeCreditsResetAt && now >= new Date(user.freeCreditsResetAt)) {
-    user.credits = DAILY_FREE_CREDITS;
-    user.freeCreditsResetAt = null;
-    await user.save();
-    return true;
+  for (const [key, config] of Object.entries(TOOL_LIMITS)) {
+    if (!user.toolCredits[key]) {
+      user.toolCredits[key] = {
+        credits: config.dailyCredits,
+        resetAt: null,
+      };
+      modified = true;
+    }
+
+    const tool = user.toolCredits[key];
+
+    // Check if 24 hours elapsed from when tool was depleted
+    if (tool.resetAt && now >= new Date(tool.resetAt)) {
+      tool.credits = config.dailyCredits;
+      tool.resetAt = null;
+      modified = true;
+    }
+
+    // Sanitize any NaN or missing values
+    if (typeof tool.credits !== "number" || isNaN(tool.credits)) {
+      tool.credits = config.dailyCredits;
+      modified = true;
+    }
   }
 
-  // If user is on Basic but never had credits set (or credits is NaN):
-  if (typeof user.credits !== "number" || isNaN(user.credits)) {
-    user.credits = DAILY_FREE_CREDITS;
-    await user.save();
-    return true;
+  // Sync overall user credits to the sum of all 4 tools (max 50)
+  const total =
+    (user.toolCredits.text?.credits ?? 10) +
+    (user.toolCredits.summarizer?.credits ?? 10) +
+    (user.toolCredits.translator?.credits ?? 10) +
+    (user.toolCredits.image?.credits ?? 20);
+
+  if (user.credits !== total) {
+    user.credits = total;
+    modified = true;
   }
 
-  return false;
+  return modified;
 }
 
 /**
- * Deducts credits for an operation.
- * Works uniformly for both Basic (50 daily credits) and Paid plans (Pro 2,000 / Ultimate 5,000).
- * If user does not have enough credits, returns { allowed: false, outOfCredits: true, message, remainingCredits, freeCreditsResetAt }
- * If Basic user reaches 0 credits (or < 5 min cost), sets freeCreditsResetAt to exactly 24 hours from now.
+ * Backwards compatibility helper for overall daily check.
  */
-export async function deductCredits(user, cost) {
-  await checkAndResetDailyCredits(user);
+export async function checkAndResetDailyCredits(user) {
+  if (!user || user.plan !== "Basic") return false;
+  const changed = ensureAndResetAllToolCredits(user);
+  if (changed) {
+    await user.save();
+  }
+  return changed;
+}
 
-  const currentCredits = user.credits ?? 0;
+/**
+ * Deduct credits specifically for a tool (text, summarizer, translator, image).
+ * Basic Plan:
+ *   - Text: 10 credits/day, 1 credit/use (10 uses/day)
+ *   - Summarizer: 10 credits/day, 1 credit/use (10 uses/day)
+ *   - Translator: 10 credits/day, 1 credit/use (10 uses/day)
+ *   - Image: 20 credits/day, 5 credits/image (4 images/day)
+ *   - Once a tool's credits are used up, that tool is locked for 24h from depletion.
+ * Paid Plan (Pro/Ultimate):
+ *   - Shared monthly balance, costs 1 credit (or 5 for image).
+ */
+export async function deductToolCredits(user, toolKey) {
+  const config = TOOL_LIMITS[toolKey];
+  if (!config) {
+    throw new Error(`Unknown tool key: ${toolKey}`);
+  }
+
+  // Handle Paid Plans (Pro / Ultimate)
+  if (user.plan !== "Basic") {
+    const cost = config.cost;
+    const currentCredits = user.credits ?? 0;
+
+    if (currentCredits < cost) {
+      return {
+        success: false,
+        outOfCredits: true,
+        tool: toolKey,
+        toolName: config.name,
+        cost,
+        remainingCredits: currentCredits,
+        freeCreditsResetAt: null,
+        message: `You have 0 credits remaining on your ${user.plan} plan. Please upgrade or add credits on the Billing page.`,
+      };
+    }
+
+    user.credits = Math.max(0, currentCredits - cost);
+    await user.save();
+
+    return {
+      success: true,
+      tool: toolKey,
+      toolName: config.name,
+      cost,
+      remainingCredits: user.credits,
+      maxCredits: null,
+      totalCredits: user.credits,
+      freeCreditsResetAt: null,
+    };
+  }
+
+  // Handle Basic Plan
+  ensureAndResetAllToolCredits(user);
+
+  const tool = user.toolCredits[toolKey];
+  const currentCredits = tool.credits ?? 0;
+  const cost = config.cost;
+
+  // Check if out of credits for this tool
   if (currentCredits < cost) {
-    // If not already scheduled for Basic plan, set 24h renewal from now
-    if (user.plan === "Basic" && !user.freeCreditsResetAt) {
-      user.freeCreditsResetAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    if (!tool.resetAt) {
+      tool.resetAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      user.markModified("toolCredits");
       await user.save();
     }
 
     return {
       success: false,
       outOfCredits: true,
+      tool: toolKey,
+      toolName: config.name,
+      cost,
       remainingCredits: currentCredits,
-      freeCreditsResetAt: user.freeCreditsResetAt,
-      message:
-        user.plan === "Basic"
-          ? "You have used your daily free credits. Upgrade to a paid plan for instant credits, or wait 24 hours for daily renewal."
-          : "You have 0 credits remaining on your plan. Please purchase credits or renew on the Billing page.",
+      maxCredits: config.dailyCredits,
+      freeCreditsResetAt: tool.resetAt,
+      message: `You have used all daily credits for ${config.name} (${config.dailyCredits} credits/day). Please wait 24 hours for renewal or upgrade to a paid plan.`,
     };
   }
 
-  // Deduct credits
-  user.credits = Math.max(0, currentCredits - cost);
+  // Deduct
+  tool.credits = Math.max(0, currentCredits - cost);
 
-  // If Basic user just depleted credits below minimum tool cost (5 credits):
-  if (user.plan === "Basic" && user.credits < 5 && !user.freeCreditsResetAt) {
-    user.freeCreditsResetAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  // If now depleted below cost, set 24h reset timer
+  if (tool.credits < cost && !tool.resetAt) {
+    tool.resetAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
   }
 
+  // Update total credits pool
+  user.credits =
+    (user.toolCredits.text?.credits ?? 10) +
+    (user.toolCredits.summarizer?.credits ?? 10) +
+    (user.toolCredits.translator?.credits ?? 10) +
+    (user.toolCredits.image?.credits ?? 20);
+
+  user.markModified("toolCredits");
   await user.save();
+
   return {
     success: true,
-    remainingCredits: user.credits,
-    freeCreditsResetAt: user.freeCreditsResetAt,
+    tool: toolKey,
+    toolName: config.name,
+    cost,
+    remainingCredits: tool.credits,
+    maxCredits: config.dailyCredits,
+    totalCredits: user.credits,
+    freeCreditsResetAt: tool.resetAt,
   };
+}
+
+/**
+ * Generic deduct credits wrapper for backward compatibility.
+ */
+export async function deductCredits(user, costOrTool = "text") {
+  if (typeof costOrTool === "string" && TOOL_LIMITS[costOrTool]) {
+    return deductToolCredits(user, costOrTool);
+  }
+  return deductToolCredits(user, "text");
 }

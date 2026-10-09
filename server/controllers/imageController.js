@@ -2,7 +2,7 @@ import axios from "axios";
 import fs from "fs";
 import History from "../models/History.js";
 import User from "../models/User.js";
-import { deductCredits } from "../utils/creditHelper.js";
+import { deductToolCredits } from "../utils/creditHelper.js";
 
 // Helper to fetch binary image data and convert to base64
 async function fetchImageBuffer(url, timeoutMs = 9000) {
@@ -55,16 +55,17 @@ export const generateImage = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Credits usage check (20 credits per image)
-    const imageCost = 20;
-    const creditResult = await deductCredits(user, imageCost);
+    // Credits usage check (5 credits per image, 20 credits/day max on Basic = 4 images/day)
+    const creditResult = await deductToolCredits(user, "image");
     if (!creditResult.success) {
       return res.status(403).json({
         success: false,
         outOfCredits: true,
         message: creditResult.message,
         remainingCredits: creditResult.remainingCredits,
+        maxCredits: creditResult.maxCredits,
         freeCreditsResetAt: creditResult.freeCreditsResetAt,
+        tool: "image",
       });
     }
 
@@ -287,7 +288,11 @@ export const generateImage = async (req, res) => {
       success: true,
       provider: providerName,
       image: `data:${imageResult.mimeType};base64,${imageResult.base64}`,
-      remainingCredits: user ? user.credits : undefined,
+      remainingCredits: creditResult.remainingCredits,
+      maxCredits: creditResult.maxCredits,
+      totalCredits: creditResult.totalCredits ?? (user ? user.credits : undefined),
+      freeCreditsResetAt: creditResult.freeCreditsResetAt,
+      tool: "image",
     });
 
   } catch (err) {

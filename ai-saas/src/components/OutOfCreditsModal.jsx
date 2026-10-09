@@ -35,7 +35,7 @@ function useCountdown(resetAt) {
   return timeLeft;
 }
 
-export default function OutOfCreditsModal({ isOpen, onClose, freeCreditsResetAt }) {
+export default function OutOfCreditsModal({ isOpen, onClose, freeCreditsResetAt, toolName }) {
   const navigate = useNavigate();
   const { plan = "Basic" } = useUsage() || {};
   const countdown = useCountdown(freeCreditsResetAt);
@@ -118,10 +118,10 @@ export default function OutOfCreditsModal({ isOpen, onClose, freeCreditsResetAt 
               </div>
               <div>
                 <h3 style={{ fontFamily: "var(--font-heading)", fontSize: 18, fontWeight: 700, color: "white", marginBottom: 2 }}>
-                  {isBasic ? "Daily Credits Used Up!" : "Out of Credits!"}
+                  {isBasic ? `${toolName ? `${toolName} ` : "Daily "}Credits Used Up!` : "Out of Credits!"}
                 </h3>
                 <p style={{ fontSize: 12, color: isBasic ? "#818cf8" : "#fbbf24", fontWeight: 500 }}>
-                  {isBasic ? "Your 50 free daily credits are exhausted" : `0 Credits Remaining on ${plan} Plan`}
+                  {isBasic ? `Daily allowance for ${toolName || "this tool"} is exhausted` : `0 Credits Remaining on ${plan} Plan`}
                 </p>
               </div>
             </div>
@@ -149,8 +149,13 @@ export default function OutOfCreditsModal({ isOpen, onClose, freeCreditsResetAt 
               <>
                 {/* Message */}
                 <p style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.65, marginBottom: 20 }}>
-                  You've used all <strong style={{ color: "white" }}>50 shared daily credits</strong> across Text, Summarizer, Image, and Translator.
-                  Your credits will <strong style={{ color: "#818cf8" }}>automatically renew</strong> after 24 hours from when they ran out.
+                  You've used all daily credits for <strong style={{ color: "white" }}>{toolName || "this tool"}</strong>.
+                  Your credits for this tool will <strong style={{ color: "#818cf8" }}>automatically renew</strong> 24 hours from when they ran out.
+                  {toolName && (
+                    <span style={{ display: "block", marginTop: 8, fontSize: 13, color: "#94a3b8" }}>
+                      💡 You can still use other AI tools if they have remaining daily credits!
+                    </span>
+                  )}
                 </p>
 
                 {/* Live countdown */}

@@ -11,20 +11,23 @@ export default function Summarizer() {
   const [copied, setCopied]       = useState(false);
   const {
     plan = "Basic",
-    credits = "Unlimited credits",
-    rawCredits = 120,
-    consumeCredits,
-    updateCreditsFromServer,
+    credits = "50",
+    rawCredits = 50,
+    toolCredits,
+    updateToolCredits,
     openOutOfCreditsModal,
     setFreeCreditsResetAt,
   } = useUsage() || {};
 
+  const summaryRemaining = plan === "Basic" ? (toolCredits?.summarizer?.credits ?? 10) : rawCredits;
+
   const handleSummarize = async () => {
     if (!inputText.trim()) return;
 
-    if (plan !== "Basic" && (rawCredits < 5 || rawCredits <= 0)) {
-      openOutOfCreditsModal?.();
-      setSummary("⚠️ You are out of credits. Please recharge credits on the Billing page.");
+    if (summaryRemaining < 1) {
+      const resetTime = toolCredits?.summarizer?.resetAt;
+      openOutOfCreditsModal?.(resetTime, "Summarizer");
+      setSummary("⚠️ You have used all 10 daily credits for Summarizer. Please wait 24 hours for daily renewal or upgrade to Pro.");
       return;
     }
 
@@ -43,14 +46,13 @@ export default function Summarizer() {
       const data = await res.json();
       if (res.ok) {
         setSummary(data.summary);
-        consumeCredits?.(5);
         if (typeof data.remainingCredits === "number") {
-          updateCreditsFromServer?.(data.remainingCredits, data.freeCreditsResetAt);
+          updateToolCredits?.("summarizer", data.remainingCredits, data.freeCreditsResetAt, 10);
         }
       } else {
         if (data.outOfCredits || res.status === 403) {
           if (data.freeCreditsResetAt) setFreeCreditsResetAt?.(data.freeCreditsResetAt);
-          openOutOfCreditsModal?.();
+          openOutOfCreditsModal?.(data.freeCreditsResetAt, "Summarizer");
         }
         setSummary(`Error: ${data.message || "Failed to summarize"}`);
       }
@@ -94,14 +96,16 @@ export default function Summarizer() {
           display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 10,
           background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", fontSize: 12, color: "var(--text-secondary)"
         }}>
-          <span style={{ color: plan === "Basic" ? "#6ee7b7" : "#c4b5fd", fontWeight: 600 }}>
-            {plan === "Basic" ? "🌱 5 credits/day" : `⚡ 5 credits / summary`}
+          <span style={{ color: "#6ee7b7", fontWeight: 600 }}>
+            ⚡ 1 credit / summary
           </span>
-          {plan !== "Basic" && (
-            <span style={{ color: "var(--text-muted)" }}>
-              • Balance: <strong style={{ color: "white" }}>{credits}</strong>
-            </span>
-          )}
+          <span style={{ color: "var(--text-muted)" }}>
+            • {plan === "Basic" ? "Daily: " : "Balance: "}
+            <strong style={{ color: summaryRemaining <= 0 ? "#f87171" : "#6ee7b7" }}>
+              {summaryRemaining}
+            </strong>
+            {plan === "Basic" ? " / 10 left" : " credits"}
+          </span>
         </div>
       </motion.div>
 

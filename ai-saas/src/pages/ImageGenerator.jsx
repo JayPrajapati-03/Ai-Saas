@@ -31,13 +31,15 @@ export default function ImageGenerator() {
   const isGenerating = useRef(false);
   const {
     plan = "Basic",
-    credits = "Unlimited credits",
-    rawCredits = 120,
-    consumeCredits,
-    updateCreditsFromServer,
+    credits = "50",
+    rawCredits = 50,
+    toolCredits,
+    updateToolCredits,
     openOutOfCreditsModal,
     setFreeCreditsResetAt,
   } = useUsage() || {};
+
+  const imageRemaining = plan === "Basic" ? (toolCredits?.image?.credits ?? 20) : rawCredits;
 
   useEffect(() => {
     let interval;
@@ -51,9 +53,10 @@ export default function ImageGenerator() {
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating.current) return;
 
-    if (plan !== "Basic" && (rawCredits < 20 || rawCredits <= 0)) {
-      openOutOfCreditsModal?.();
-      setError("⚠️ You do not have enough credits (20 credits required). Please recharge credits on the Billing page.");
+    if (imageRemaining < 5) {
+      const resetTime = toolCredits?.image?.resetAt;
+      openOutOfCreditsModal?.(resetTime, "Image Generator");
+      setError("⚠️ You have used all 20 daily credits for Image Generator (4 images/day limit reached). Please wait 24 hours for daily renewal or upgrade to Pro.");
       return;
     }
 
@@ -84,14 +87,13 @@ export default function ImageGenerator() {
       const data = await res.json();
       if (res.ok && data.success && data.image) {
         setImageUrl(data.image);
-        consumeCredits?.(20);
         if (typeof data.remainingCredits === "number") {
-          updateCreditsFromServer?.(data.remainingCredits, data.freeCreditsResetAt);
+          updateToolCredits?.("image", data.remainingCredits, data.freeCreditsResetAt, 20);
         }
       } else {
         if (data.outOfCredits || res.status === 403) {
           if (data.freeCreditsResetAt) setFreeCreditsResetAt?.(data.freeCreditsResetAt);
-          openOutOfCreditsModal?.();
+          openOutOfCreditsModal?.(data.freeCreditsResetAt, "Image Generator");
         }
         setError(data.message || "Failed to generate image. Please try again.");
       }
@@ -141,14 +143,16 @@ export default function ImageGenerator() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", fontSize: 12, color: "var(--text-secondary)" }}>
-          <span style={{ color: plan === "Basic" ? "#6ee7b7" : "#f9a8d4", fontWeight: 600 }}>
-            {plan === "Basic" ? "🌱 20 credits/day" : `⚡ 20 credits / image`}
+          <span style={{ color: "#f9a8d4", fontWeight: 600 }}>
+            ⚡ 5 credits / image
           </span>
-          {plan !== "Basic" && (
-            <span style={{ color: "var(--text-muted)" }}>
-              • Balance: <strong style={{ color: "white" }}>{credits}</strong>
-            </span>
-          )}
+          <span style={{ color: "var(--text-muted)" }}>
+            • {plan === "Basic" ? `Daily: ` : `Balance: `}
+            <strong style={{ color: imageRemaining < 5 ? "#f87171" : "#6ee7b7" }}>
+              {imageRemaining}
+            </strong>
+            {plan === "Basic" ? ` / 20 left (${Math.floor(imageRemaining / 5)} pics)` : ` credits`}
+          </span>
         </div>
       </motion.div>
 

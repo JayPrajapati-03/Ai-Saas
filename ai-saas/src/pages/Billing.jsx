@@ -221,7 +221,7 @@ export default function Billing() {
     setShowDowngradeModal(false);
     const result = await switchToBasic();
     setSuccessBanner(
-      result?.message || "🌱 Switched to Basic Plan! You now have unlimited free generations."
+      result?.message || "🌱 Switched to Basic Plan! You now have 50 daily free credits across all tools."
     );
     setTimeout(() => setSuccessBanner(""), 8000);
   };

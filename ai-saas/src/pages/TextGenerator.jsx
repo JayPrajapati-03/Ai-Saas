@@ -20,20 +20,23 @@ export default function TextGenerator() {
   const [copied, setCopied]   = useState(false);
   const {
     plan = "Basic",
-    credits = "Unlimited credits",
-    rawCredits = 120,
-    consumeCredits,
-    updateCreditsFromServer,
+    credits = "50",
+    rawCredits = 50,
+    toolCredits,
+    updateToolCredits,
     openOutOfCreditsModal,
     setFreeCreditsResetAt,
   } = useUsage() || {};
 
+  const textRemaining = plan === "Basic" ? (toolCredits?.text?.credits ?? 10) : rawCredits;
+
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
 
-    if (plan !== "Basic" && (rawCredits < 5 || rawCredits <= 0)) {
-      openOutOfCreditsModal?.();
-      setOutput("⚠️ You are out of credits. Please recharge credits on the Billing page.");
+    if (textRemaining < 1) {
+      const resetTime = toolCredits?.text?.resetAt;
+      openOutOfCreditsModal?.(resetTime, "Text Generator");
+      setOutput("⚠️ You have used all 10 daily credits for Text Generator. Please wait 24 hours for daily renewal or upgrade to Pro.");
       return;
     }
 
@@ -52,14 +55,13 @@ export default function TextGenerator() {
       const data = await res.json();
       if (res.ok) {
         setOutput(data.output);
-        consumeCredits?.(5);
         if (typeof data.remainingCredits === "number") {
-          updateCreditsFromServer?.(data.remainingCredits, data.freeCreditsResetAt);
+          updateToolCredits?.("text", data.remainingCredits, data.freeCreditsResetAt, 10);
         }
       } else {
         if (data.outOfCredits || res.status === 403) {
           if (data.freeCreditsResetAt) setFreeCreditsResetAt?.(data.freeCreditsResetAt);
-          openOutOfCreditsModal?.();
+          openOutOfCreditsModal?.(data.freeCreditsResetAt, "Text Generator");
         }
         setOutput(`Error: ${data.message || "Failed to generate text"}`);
       }
@@ -98,14 +100,16 @@ export default function TextGenerator() {
           display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 10,
           background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", fontSize: 12, color: "var(--text-secondary)"
         }}>
-          <span style={{ color: plan === "Basic" ? "#6ee7b7" : "#c4b5fd", fontWeight: 600 }}>
-            {plan === "Basic" ? "🌱 5 credits/day" : `⚡ 5 credits / prompt`}
+          <span style={{ color: "#67e8f9", fontWeight: 600 }}>
+            ⚡ 1 credit / prompt
           </span>
-          {plan !== "Basic" && (
-            <span style={{ color: "var(--text-muted)" }}>
-              • Balance: <strong style={{ color: "white" }}>{credits}</strong>
-            </span>
-          )}
+          <span style={{ color: "var(--text-muted)" }}>
+            • {plan === "Basic" ? "Daily: " : "Balance: "}
+            <strong style={{ color: textRemaining <= 0 ? "#f87171" : "#6ee7b7" }}>
+              {textRemaining}
+            </strong>
+            {plan === "Basic" ? " / 10 left" : " credits"}
+          </span>
         </div>
       </motion.div>
 

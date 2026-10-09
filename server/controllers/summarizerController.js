@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import User from "../models/User.js";
 import History from "../models/History.js";
-import { deductCredits } from "../utils/creditHelper.js";
+import { deductToolCredits } from "../utils/creditHelper.js";
 
 export const summarizeText = async (req, res) => {
   try {
@@ -36,15 +36,17 @@ export const summarizeText = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Credits check — works for both Basic (daily pool) and paid plans
-    const summaryCost = 5;
-    const creditResult = await deductCredits(user, summaryCost);
+    // Credits check (1 credit per summary, 10 credits/day max on Basic)
+    const creditResult = await deductToolCredits(user, "summarizer");
     if (!creditResult.success) {
       return res.status(403).json({
         success: false,
         outOfCredits: true,
         message: creditResult.message,
         remainingCredits: creditResult.remainingCredits,
+        maxCredits: creditResult.maxCredits,
+        freeCreditsResetAt: creditResult.freeCreditsResetAt,
+        tool: "summarizer",
       });
     }
 
@@ -84,6 +86,10 @@ export const summarizeText = async (req, res) => {
       success: true,
       summary: output,
       remainingCredits: creditResult.remainingCredits,
+      maxCredits: creditResult.maxCredits,
+      totalCredits: creditResult.totalCredits ?? user.credits,
+      freeCreditsResetAt: creditResult.freeCreditsResetAt,
+      tool: "summarizer",
     });
 
   } catch (error) {

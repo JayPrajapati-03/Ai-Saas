@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import User from "../models/User.js";
 import History from "../models/History.js";
-import { deductCredits } from "../utils/creditHelper.js";
+import { deductToolCredits } from "../utils/creditHelper.js";
 
 export const translateText = async (req, res) => {
   try {
@@ -43,15 +43,17 @@ export const translateText = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Credits check — works for both Basic (daily pool) and paid plans
-    const translateCost = 5;
-    const creditResult = await deductCredits(user, translateCost);
+    // Credits check (1 credit per translation, 10 credits/day max on Basic)
+    const creditResult = await deductToolCredits(user, "translator");
     if (!creditResult.success) {
       return res.status(403).json({
         success: false,
         outOfCredits: true,
         message: creditResult.message,
         remainingCredits: creditResult.remainingCredits,
+        maxCredits: creditResult.maxCredits,
+        freeCreditsResetAt: creditResult.freeCreditsResetAt,
+        tool: "translator",
       });
     }
 
@@ -91,6 +93,10 @@ export const translateText = async (req, res) => {
       success: true,
       translated,
       remainingCredits: creditResult.remainingCredits,
+      maxCredits: creditResult.maxCredits,
+      totalCredits: creditResult.totalCredits ?? user.credits,
+      freeCreditsResetAt: creditResult.freeCreditsResetAt,
+      tool: "translator",
     });
 
   } catch (error) {

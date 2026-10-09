@@ -41,20 +41,23 @@ export default function Translator() {
   const [copied, setCopied]         = useState(false);
   const {
     plan = "Basic",
-    credits = "Unlimited credits",
-    rawCredits = 120,
-    consumeCredits,
-    updateCreditsFromServer,
+    credits = "50",
+    rawCredits = 50,
+    toolCredits,
+    updateToolCredits,
     openOutOfCreditsModal,
     setFreeCreditsResetAt,
   } = useUsage() || {};
 
+  const translateRemaining = plan === "Basic" ? (toolCredits?.translator?.credits ?? 10) : rawCredits;
+
   const handleTranslate = async () => {
     if (!inputText.trim()) return;
 
-    if (plan !== "Basic" && (rawCredits < 5 || rawCredits <= 0)) {
-      openOutOfCreditsModal?.();
-      setOutputText("⚠️ You are out of credits. Please recharge credits on the Billing page.");
+    if (translateRemaining < 1) {
+      const resetTime = toolCredits?.translator?.resetAt;
+      openOutOfCreditsModal?.(resetTime, "Translator");
+      setOutputText("⚠️ You have used all 10 daily credits for Translator. Please wait 24 hours for daily renewal or upgrade to Pro.");
       return;
     }
 
@@ -73,14 +76,13 @@ export default function Translator() {
       const data = await res.json();
       if (data.success) {
         setOutputText(data.translated);
-        consumeCredits?.(5);
         if (typeof data.remainingCredits === "number") {
-          updateCreditsFromServer?.(data.remainingCredits, data.freeCreditsResetAt);
+          updateToolCredits?.("translator", data.remainingCredits, data.freeCreditsResetAt, 10);
         }
       } else {
         if (data.outOfCredits || res.status === 403) {
           if (data.freeCreditsResetAt) setFreeCreditsResetAt?.(data.freeCreditsResetAt);
-          openOutOfCreditsModal?.();
+          openOutOfCreditsModal?.(data.freeCreditsResetAt, "Translator");
         }
         setOutputText(`Error: ${data.message || "Failed to translate"}`);
       }
@@ -129,14 +131,16 @@ export default function Translator() {
           display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 10,
           background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", fontSize: 12, color: "var(--text-secondary)"
         }}>
-          <span style={{ color: plan === "Basic" ? "#6ee7b7" : "#fcd34d", fontWeight: 600 }}>
-            {plan === "Basic" ? "🌱 5 credits/day" : `⚡ 5 credits / translation`}
+          <span style={{ color: "#fcd34d", fontWeight: 600 }}>
+            ⚡ 1 credit / translation
           </span>
-          {plan !== "Basic" && (
-            <span style={{ color: "var(--text-muted)" }}>
-              • Balance: <strong style={{ color: "white" }}>{credits}</strong>
-            </span>
-          )}
+          <span style={{ color: "var(--text-muted)" }}>
+            • {plan === "Basic" ? "Daily: " : "Balance: "}
+            <strong style={{ color: translateRemaining <= 0 ? "#f87171" : "#6ee7b7" }}>
+              {translateRemaining}
+            </strong>
+            {plan === "Basic" ? " / 10 left" : " credits"}
+          </span>
         </div>
       </motion.div>
 

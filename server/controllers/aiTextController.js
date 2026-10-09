@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import User from "../models/User.js";
 import History from "../models/History.js";
-import { deductCredits } from "../utils/creditHelper.js";
+import { deductToolCredits } from "../utils/creditHelper.js";
 
 export const generateText = async (req, res) => {
   try {
@@ -24,16 +24,17 @@ export const generateText = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Credits usage check (5 credits per generation)
-    const textCost = 5;
-    const creditResult = await deductCredits(user, textCost);
+    // Credits usage check (1 credit per prompt, 10 credits/day max on Basic)
+    const creditResult = await deductToolCredits(user, "text");
     if (!creditResult.success) {
       return res.status(403).json({
         success: false,
         outOfCredits: true,
         message: creditResult.message,
         remainingCredits: creditResult.remainingCredits,
+        maxCredits: creditResult.maxCredits,
         freeCreditsResetAt: creditResult.freeCreditsResetAt,
+        tool: "text",
       });
     }
 
@@ -97,8 +98,11 @@ export const generateText = async (req, res) => {
     res.json({
       success: true,
       output,
-      remainingCredits: user.credits,
+      remainingCredits: creditResult.remainingCredits,
+      maxCredits: creditResult.maxCredits,
+      totalCredits: creditResult.totalCredits ?? user.credits,
       freeCreditsResetAt: creditResult.freeCreditsResetAt,
+      tool: "text",
     });
 
   } catch (error) {

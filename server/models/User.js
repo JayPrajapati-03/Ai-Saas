@@ -34,6 +34,25 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
+    toolCredits: {
+      text: {
+        credits: { type: Number, default: 10 },
+        resetAt: { type: Date, default: null },
+      },
+      summarizer: {
+        credits: { type: Number, default: 10 },
+        resetAt: { type: Date, default: null },
+      },
+      translator: {
+        credits: { type: Number, default: 10 },
+        resetAt: { type: Date, default: null },
+      },
+      image: {
+        credits: { type: Number, default: 20 },
+        resetAt: { type: Date, default: null },
+      },
+    },
+
     todayUsage: {
       type: Number,
       default: 0,

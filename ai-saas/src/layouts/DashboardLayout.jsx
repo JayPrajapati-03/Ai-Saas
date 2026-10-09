@@ -33,10 +33,11 @@ const notifIconMap = { Sparkles, Zap, ImageIcon, Bell, Trophy, Shield, CreditCar
 export default function DashboardLayout() {
   const {
     plan = "Basic",
-    credits = "Unlimited credits",
+    credits = "50",
     showOutOfCreditsModal,
     setShowOutOfCreditsModal,
     freeCreditsResetAt,
+    modalToolName,
   } = useUsage() || {};
   const {
     notifications,
@@ -743,6 +744,7 @@ export default function DashboardLayout() {
         isOpen={Boolean(showOutOfCreditsModal)}
         onClose={() => setShowOutOfCreditsModal?.(false)}
         freeCreditsResetAt={freeCreditsResetAt}
+        toolName={modalToolName}
       />
     </div>
   );

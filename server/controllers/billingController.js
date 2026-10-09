@@ -1,17 +1,20 @@
 import User from "../models/User.js";
 import axios from "axios";
-import { checkAndResetDailyCredits } from "../utils/creditHelper.js";
+import { checkAndResetDailyCredits, ensureAndResetAllToolCredits } from "../utils/creditHelper.js";
 
 // GET /api/billing/status
 export const getBillingStatus = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select(
-      "plan credits planStartDate planExpiresAt purchasedPlan billingHistory name email freeCreditsResetAt"
+      "plan credits planStartDate planExpiresAt purchasedPlan billingHistory name email freeCreditsResetAt toolCredits"
     );
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
     // Check daily free credits reset for Basic plan
-    await checkAndResetDailyCredits(user);
+    if (user.plan === "Basic") {
+      ensureAndResetAllToolCredits(user);
+      await user.save();
+    }
 
     // Auto-expire: if paid plan period ended, clear paid/purchased plan back to Basic
     if (user.planExpiresAt && new Date() > new Date(user.planExpiresAt)) {
@@ -29,7 +32,7 @@ export const getBillingStatus = async (req, res) => {
     }
 
     const currentPlan = user.plan || "Basic";
-    const creditsDisplay = currentPlan === "Basic" ? `${user.credits ?? 50} credits / day` : user.credits;
+    const creditsDisplay = currentPlan === "Basic" ? `${user.credits ?? 50} / 50 daily` : user.credits;
 
     let daysRemaining = null;
     if (user.purchasedPlan && user.planExpiresAt) {
@@ -44,6 +47,12 @@ export const getBillingStatus = async (req, res) => {
         credits: creditsDisplay,
         rawCredits: user.credits ?? 50,
         freeCreditsResetAt: user.freeCreditsResetAt || null,
+        toolCredits: user.toolCredits || {
+          text: { credits: 10, resetAt: null },
+          summarizer: { credits: 10, resetAt: null },
+          translator: { credits: 10, resetAt: null },
+          image: { credits: 20, resetAt: null },
+        },
         planStartDate: user.planStartDate || user.createdAt,
         planExpiresAt: user.planExpiresAt || null,
         purchasedPlan: user.purchasedPlan || null,

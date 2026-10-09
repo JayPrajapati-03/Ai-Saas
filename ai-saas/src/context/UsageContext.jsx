@@ -33,25 +33,39 @@ export function UsageProvider({ children }) {
       const p = localStorage.getItem("saas_active_plan") || "Basic";
       if (p === "Pro") return 2000;
       if (p === "Ultimate") return 5000;
-      return 120;
+      return 50;
     } catch {
-      return 120;
+      return 50;
     }
   });
 
   const [credits, setCredits] = useState(() => {
     try {
       const p = localStorage.getItem("saas_active_plan") || "Basic";
-      if (p === "Basic") return "Unlimited credits";
       const saved = localStorage.getItem("saas_raw_credits");
       if (saved !== null) return parseInt(saved, 10).toLocaleString();
       if (p === "Pro") return "2,000";
       if (p === "Ultimate") return "5,000";
-      return "Unlimited credits";
+      return "50";
     } catch {
-      return "Unlimited credits";
+      return "50";
     }
   });
+
+  const [toolCredits, setToolCredits] = useState(() => {
+    try {
+      const saved = localStorage.getItem("saas_tool_credits");
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return {
+      text: { credits: 10, max: 10, resetAt: null },
+      summarizer: { credits: 10, max: 10, resetAt: null },
+      translator: { credits: 10, max: 10, resetAt: null },
+      image: { credits: 20, max: 20, resetAt: null },
+    };
+  });
+
+  const [modalToolName, setModalToolName] = useState("");
 
   const [billingHistory, setBillingHistory] = useState(() => {
     try {
@@ -74,8 +88,27 @@ export function UsageProvider({ children }) {
     setUsageCount((prev) => prev + 1);
   };
 
-  const openOutOfCreditsModal = () => {
+  const openOutOfCreditsModal = (resetAt = null, toolName = "") => {
+    if (resetAt) setFreeCreditsResetAt(resetAt);
+    if (toolName) setModalToolName(toolName);
     setShowOutOfCreditsModal(true);
+  };
+
+  const updateToolCredits = (toolKey, remaining, resetAt, maxCredits) => {
+    setToolCredits((prev) => {
+      const updated = {
+        ...prev,
+        [toolKey]: {
+          credits: typeof remaining === "number" ? remaining : (prev[toolKey]?.credits ?? 10),
+          max: maxCredits || prev[toolKey]?.max || (toolKey === "image" ? 20 : 10),
+          resetAt: resetAt || prev[toolKey]?.resetAt || null,
+        },
+      };
+      try {
+        localStorage.setItem("saas_tool_credits", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
   };
 
   // Sync state to localStorage
@@ -94,14 +127,14 @@ export function UsageProvider({ children }) {
       if (storedUser) {
         const u = JSON.parse(storedUser);
         u.plan = newPlan;
-        u.credits = typeof newRawNum === "number" ? newRawNum : (newPlan === "Basic" ? 120 : (newPlan === "Pro" ? 2000 : 5000));
+        u.credits = typeof newRawNum === "number" ? newRawNum : (newPlan === "Basic" ? 50 : (newPlan === "Pro" ? 2000 : 5000));
         localStorage.setItem("user", JSON.stringify(u));
       }
     } catch { /* noop */ }
   };
 
   // Consume credits on generation
-  const consumeCredits = (cost = 5) => {
+  const consumeCredits = (cost = 1) => {
     if (plan === "Basic") {
       incrementUsage();
       return { allowed: true };
@@ -130,7 +163,7 @@ export function UsageProvider({ children }) {
   const updateCreditsFromServer = (serverCredits, resetAt) => {
     if (typeof serverCredits === "number") {
       setRawCredits(serverCredits);
-      const str = serverCredits.toLocaleString();
+      const str = plan === "Basic" ? `${serverCredits} / 50 daily` : serverCredits.toLocaleString();
       setCredits(str);
       syncLocalState(plan, str, serverCredits);
 
@@ -174,13 +207,15 @@ export function UsageProvider({ children }) {
           const currentPlan = sub.plan || "Basic";
           setPlan(currentPlan);
 
-          let credStr = "Unlimited credits";
-          let rawNum = typeof sub.rawCredits === "number" ? sub.rawCredits : 120;
-          if (currentPlan === "Pro") {
-            credStr = rawNum.toLocaleString();
-          } else if (currentPlan === "Ultimate") {
-            credStr = rawNum.toLocaleString();
+          if (sub.toolCredits) {
+            setToolCredits(sub.toolCredits);
+            try {
+              localStorage.setItem("saas_tool_credits", JSON.stringify(sub.toolCredits));
+            } catch {}
           }
+
+          let rawNum = typeof sub.rawCredits === "number" ? sub.rawCredits : (currentPlan === "Basic" ? 50 : 2000);
+          let credStr = currentPlan === "Basic" ? `${rawNum} / 50 daily` : rawNum.toLocaleString();
 
           setRawCredits(rawNum);
           setCredits(credStr);
@@ -189,6 +224,7 @@ export function UsageProvider({ children }) {
           setPlanExpiresAt(sub.planExpiresAt || null);
           setPurchasedPlan(sub.purchasedPlan || null);
           setDaysRemaining(typeof sub.daysRemaining === "number" ? sub.daysRemaining : null);
+          if (sub.freeCreditsResetAt) setFreeCreditsResetAt(sub.freeCreditsResetAt);
 
           if (sub.billingHistory && Array.isArray(sub.billingHistory)) {
             setBillingHistory(sub.billingHistory);
@@ -401,6 +437,11 @@ export function UsageProvider({ children }) {
         openOutOfCreditsModal,
         freeCreditsResetAt,
         setFreeCreditsResetAt,
+        toolCredits,
+        setToolCredits,
+        updateToolCredits,
+        modalToolName,
+        setModalToolName,
       }}
     >
       {children}

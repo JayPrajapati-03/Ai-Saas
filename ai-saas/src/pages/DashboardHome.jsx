@@ -75,10 +75,11 @@ const planBadges = {
     border: "rgba(16,185,129,0.35)",
     icon: Zap,
     perks: [
-      "AI Text Generation",
-      "AI Summarizer",
-      "Basic Translator",
-      "Image Generator (10/day)",
+      "50 Total Daily Credits",
+      "10 Text Generations/day (1 credit ea)",
+      "10 Summaries/day (1 credit ea)",
+      "10 Translations/day (1 credit ea)",
+      "4 AI Images/day (5 credits ea)",
     ],
   },
   Pro: {
@@ -225,7 +226,7 @@ export default function DashboardHome() {
 
   // Credits to display on Dashboard
   const displayCredits =
-    plan === "Basic" ? "∞" : credits || stats.credits || "2,000";
+    plan === "Basic" ? `${rawCredits ?? 50} / 50` : credits || stats.credits || "2,000";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
@@ -495,7 +496,7 @@ export default function DashboardHome() {
           </div>
           <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>
             {plan === "Basic"
-              ? "Unlimited free generation"
+              ? "50 daily credits across all tools"
               : `Monthly pool (${credits})`}
           </p>
         </motion.div>
